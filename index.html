@@ -1,0 +1,2456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Géo Arena · Jeu de géographie : départements, régions, pays et capitales</title>
+<meta name="description" content="Géo Arena : jeu de géographie gratuit. Régions, départements et villes de France, pays et capitales du monde sur de vraies cartes. Chrono, combos, rangs de Bronze à Légende et classement en direct.">
+<meta name="keywords" content="jeu de géographie, quiz géographie, départements français, régions de France, capitales du monde, capitales européennes, pays du monde, carte interactive">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#030817">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="site.webmanifest">
+
+<link rel="canonical" href="https://egicquelsats-cpu.github.io/geo-arena/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="Géo Arena · Vise juste. Réponds vite.">
+<meta property="og:description" content="Géo Arena : jeu de géographie gratuit. Régions, départements et villes de France, pays et capitales du monde sur de vraies cartes. Chrono, combos, rangs de Bronze à Légende et classement en direct.">
+<meta property="og:url" content="https://egicquelsats-cpu.github.io/geo-arena/">
+<meta name="twitter:card" content="summary">
+<!-- Google Search Console : collez ici le code de validation (méthode « Balise HTML ») -->
+<meta name="google-site-verification" content="">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"VideoGame","name":"Géo Arena","description":"Géo Arena : jeu de géographie gratuit. Régions, départements et villes de France, pays et capitales du monde sur de vraies cartes. Chrono, combos, rangs de Bronze à Légende et classement en direct.","inLanguage":"fr","genre":["Quiz","Éducatif","Géographie"],"applicationCategory":"Game","operatingSystem":"Web","gamePlatform":"Navigateur web","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<style>
+/* Direction : la Terre vue de nuit. Ciel étoilé, aurore cyan, océan profond, terres sable, épingles corail-ambre. */
+:root{
+  color-scheme:dark;
+  --deep:#030817;
+  --sea:#071a36;
+  --sea-2:#0d2d57;
+  --ink:#f4f1ea;
+  --muted:#8fa3c0;
+  --faint:rgba(190,220,255,.09);
+  --line:rgba(190,220,255,.15);
+  --land:#f2e5c6;
+  --land-hi:#fffaf0;
+  --coast:#b99a5e;
+  --accent:#ff6a4d;
+  --accent-2:#ffb547;
+  --accent-ink:#1d0a03;
+  --cyan:#4fd8ff;
+  --gold:#ffd166;
+  --good:#3ee0a8;
+  --bad:#ff5c7a;
+  --glass:rgba(6,18,42,.62);
+  --display:"Bricolage Grotesque","Arial Black",system-ui,sans-serif;
+  --body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"DM Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;overflow-x:clip}
+body{
+  background:var(--deep);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  background-image:
+    radial-gradient(1100px 680px at 88% -12%,rgba(79,216,255,.17),transparent 62%),
+    radial-gradient(900px 620px at -12% 108%,rgba(255,106,77,.15),transparent 60%),
+    linear-gradient(180deg,#05102a 0%,#030817 55%,#02050e 100%);
+  background-attachment:fixed;
+}
+#sky{position:fixed;inset:0;width:100%;height:100%;z-index:-2;pointer-events:none}
+.aurora{position:fixed;inset:-20% -10% auto -10%;height:70vh;z-index:-1;pointer-events:none;opacity:.55;filter:blur(70px);
+  background:radial-gradient(40% 50% at 30% 50%,rgba(62,224,168,.22),transparent 70%),radial-gradient(35% 45% at 65% 40%,rgba(79,216,255,.22),transparent 70%),radial-gradient(30% 40% at 85% 60%,rgba(140,110,255,.16),transparent 70%);
+  animation:aurora 26s ease-in-out infinite alternate}
+@keyframes aurora{from{transform:translate3d(-4%,0,0) scaleY(1)}to{transform:translate3d(4%,3%,0) scaleY(1.15)}}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.shell{max-width:1280px;margin:0 auto;padding:0 20px 72px}
+.glass{background:var(--glass);border:1px solid var(--line);border-radius:22px;backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2)}
+
+/* En-tête */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;padding:14px 20px;margin:0 auto;max-width:1280px}
+.top::before{content:"";position:absolute;inset:0 -100vw;background:linear-gradient(rgba(3,8,23,.92),rgba(3,8,23,.55));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:-1;border-bottom:1px solid var(--faint)}
+.brand{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;cursor:pointer;font-family:var(--display);font-weight:800;font-size:1.2rem;letter-spacing:-.01em}
+.brand svg{flex:none}
+.brand em{font-style:normal;background:linear-gradient(90deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.nav{display:flex;align-items:center;gap:8px;margin-left:auto}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:.95rem;background:rgba(243,238,227,.06);border:1px solid var(--line);border-radius:999px;padding:10px 18px;cursor:pointer;transition:background .2s,border-color .2s,transform .12s;white-space:nowrap}
+.btn:hover{background:rgba(243,238,227,.11);border-color:rgba(243,238,227,.28)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));border-color:transparent;color:var(--accent-ink);font-weight:700;box-shadow:0 10px 26px -10px rgba(255,106,77,.75),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn.primary:hover{filter:brightness(1.08);box-shadow:0 12px 30px -8px rgba(255,140,77,.85),inset 0 1px 0 rgba(255,255,255,.4)}
+.btn.big{padding:14px 26px;font-size:1.05rem}
+.btn.icon{padding:10px;width:42px;height:42px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.chip-prof{display:flex;align-items:center;gap:10px;padding:5px 14px 5px 5px}
+.avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:.95rem;color:#160a04;background:var(--av,#ff5b3a);flex:none}
+.chip-prof .emblem{width:24px;height:24px}
+
+/* Accueil */
+.hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:30px;align-items:center;padding:34px 0 26px}
+.eyebrow{margin:0 0 14px;font-family:var(--mono);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.hero h1{font-family:var(--display);font-weight:800;font-size:clamp(2.5rem,5.4vw,5.3rem);white-space:nowrap;line-height:.88;letter-spacing:-.045em;margin:0 0 22px;text-wrap:balance}
+.hero h1 .l2{display:block;padding-bottom:.08em;background:linear-gradient(100deg,var(--accent) 0%,var(--accent-2) 42%,var(--cyan) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.lede{max-width:50ch;color:var(--muted);font-size:1.1rem;margin:0 0 28px;text-wrap:pretty}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.hero-me{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.92rem}
+.globe-wrap{position:relative;width:100%;max-width:560px;aspect-ratio:1;justify-self:center}
+.globe-wrap canvas{width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+.globe-wrap canvas:active{cursor:grabbing}
+.globe-tag{position:absolute;font-family:var(--mono);font-size:.74rem;color:var(--muted);letter-spacing:.06em;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(6,14,29,.6)}
+.globe-tag.t1{left:2%;top:12%}
+.globe-tag.t2{right:0;bottom:14%}
+
+.section{margin-top:46px;scroll-margin-top:90px}
+.sec-head{display:flex;align-items:end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.sec-head h2{font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,3vw,2.2rem);letter-spacing:-.03em;margin:0;line-height:1}
+.sec-head p{margin:0;color:var(--muted);max-width:52ch}
+
+.diffs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.diff{text-align:left;cursor:pointer;padding:18px 20px;border-radius:20px;background:rgba(243,238,227,.04);border:1px solid var(--line);display:grid;gap:6px;transition:border-color .2s,background .2s}
+.diff:hover{border-color:rgba(243,238,227,.3)}
+.diff[aria-pressed="true"]{background:linear-gradient(160deg,rgba(255,106,77,.16),rgba(255,181,71,.06));border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset,0 14px 34px -18px rgba(255,106,77,.8)}
+.diff .d-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.diff b{font-family:var(--display);font-size:1.3rem;font-weight:800;letter-spacing:-.02em}
+.diff .mult{font-family:var(--mono);font-size:.9rem;color:var(--gold)}
+.diff p{margin:0;color:var(--muted);font-size:.9rem}
+.diff .cap{display:flex;align-items:center;gap:8px;font-size:.86rem;color:var(--ink);margin-top:4px}
+.diff .cap .emblem{width:22px;height:22px}
+
+.group-label{display:flex;align-items:center;gap:12px;margin:26px 0 12px;font-family:var(--mono);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.group-label::after{content:"";flex:1;height:1px;background:var(--faint)}
+.modes{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.mode{position:relative;text-align:left;cursor:pointer;padding:0;border-radius:22px;overflow:hidden;background:linear-gradient(180deg,rgba(14,44,88,.78),rgba(5,16,38,.9));backdrop-filter:blur(8px);border:1px solid var(--line);display:flex;flex-direction:column;transition:transform .25s cubic-bezier(.2,.8,.2,1),border-color .25s,box-shadow .25s}
+.mode:hover{transform:translateY(-4px);border-color:rgba(79,216,255,.55);box-shadow:0 22px 46px -20px rgba(79,216,255,.45)}
+.mini{height:150px;display:grid;place-items:center;background:radial-gradient(120% 100% at 50% 20%,#14417a,#081a3a 70%);border-bottom:1px solid var(--faint)}
+.mini svg{width:100%;height:100%}
+.mini.loading{background:linear-gradient(100deg,#0c1b36 30%,#14294f 50%,#0c1b36 70%) 0 0/300% 100%;animation:shimmer 1.6s linear infinite}
+@keyframes shimmer{to{background-position:-300% 0}}
+.mini .m-land{fill:var(--land);stroke:var(--coast);stroke-width:.5}
+.mini .m-land2{fill:#20385f}
+.mini .m-hi{fill:var(--accent)}
+.mini .m-dot{fill:var(--accent);stroke:#fff;stroke-width:1}
+.mode-body{padding:16px 18px 18px;display:grid;gap:8px;flex:1}
+.mode-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mode h3{font-family:var(--display);font-weight:800;font-size:1.25rem;letter-spacing:-.02em;margin:0;line-height:1.1}
+.tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.tag.map{color:#7fd8ff;border-color:rgba(127,216,255,.35)}
+.tag.type{color:var(--gold);border-color:rgba(246,196,83,.4)}
+.mode p{margin:0;color:var(--muted);font-size:.92rem;line-height:1.45}
+.mode-best{display:flex;align-items:center;gap:8px;margin-top:6px;padding-top:10px;border-top:1px solid var(--faint);font-size:.86rem;color:var(--muted)}
+.mode-best .emblem{width:26px;height:26px}
+.mode-best b{color:var(--ink);font-family:var(--mono);font-weight:500}
+
+.how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.how-item{padding:20px;border-radius:20px;border:1px solid var(--line);background:rgba(243,238,227,.035)}
+.how-item .n{font-family:var(--mono);color:var(--accent);font-size:.8rem;letter-spacing:.1em}
+.how-item h3{font-family:var(--display);font-size:1.15rem;margin:6px 0 6px;letter-spacing:-.02em}
+.how-item p{margin:0;color:var(--muted);font-size:.92rem}
+.how-item code{font-family:var(--mono);font-size:.85rem;color:var(--gold)}
+
+.ladder{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}
+.rung{display:grid;justify-items:center;gap:6px;padding:16px 6px 14px;border-radius:18px;border:1px solid var(--line);background:rgba(243,238,227,.03);text-align:center}
+.rung .emblem{width:58px;height:58px;filter:drop-shadow(0 6px 14px color-mix(in srgb,var(--rc) 45%,transparent))}
+.rung b{font-family:var(--display);font-size:.95rem;letter-spacing:-.01em;line-height:1.1}
+.rung span{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+.rung.cur{border-color:var(--rc);box-shadow:0 0 0 1px var(--rc) inset,0 0 30px -10px var(--rc)}
+.credits{margin-top:44px;color:var(--muted);font-size:.82rem;border-top:1px solid var(--faint);padding-top:18px}
+
+/* Partie */
+.arena{position:relative;margin-top:14px}
+.hud{display:flex;gap:12px;align-items:stretch;margin-bottom:12px}
+.qcard{flex:1;min-width:0;padding:16px 18px 14px;display:grid;gap:10px}
+.q-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:rgba(243,238,227,.08);color:var(--ink)}
+.chip.ghost{background:none;border:1px solid var(--line);color:var(--muted)}
+.q-count{margin-left:auto;font-family:var(--mono);font-size:.82rem;color:var(--muted)}
+.q-count b{color:var(--ink);font-weight:500}
+.linkbtn{background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem;text-decoration:underline;text-underline-offset:3px;padding:2px 4px}
+.linkbtn:hover{color:var(--ink)}
+.q-main{display:flex;align-items:center;gap:16px}
+.q-text{flex:1;min-width:0}
+.q-prompt{font-family:var(--display);font-weight:700;font-size:clamp(1.25rem,2.4vw,1.9rem);line-height:1.12;letter-spacing:-.025em;margin:0;text-wrap:balance}
+.q-prompt .hl{color:var(--accent)}
+.q-hint{margin:6px 0 0;font-size:.92rem;color:var(--gold);min-height:1.4em;font-family:var(--mono);letter-spacing:.02em}
+.tring{position:relative;width:62px;height:62px;flex:none}
+.tring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.tring circle{fill:none;stroke-width:5}
+.tr-bg{stroke:rgba(243,238,227,.12)}
+.tr-fg{stroke:var(--gold);stroke-linecap:round;stroke-dasharray:138.23;transition:stroke .3s}
+.tring.low .tr-fg{stroke:var(--bad)}
+.tring span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-size:1.2rem;font-weight:500}
+.tring.low span{color:var(--bad);animation:beat .5s ease-in-out infinite alternate}
+@keyframes beat{to{transform:scale(1.12)}}
+.dots{display:flex;gap:5px}
+.dots i{flex:1;height:5px;border-radius:9px;background:rgba(243,238,227,.12);transition:background .3s}
+.dots i.cur{background:rgba(243,238,227,.55)}
+.dots i.hit{background:var(--good)}
+.dots i.part{background:var(--gold)}
+.dots i.miss{background:var(--bad)}
+.scard{width:200px;flex:none;padding:16px 18px;display:grid;align-content:center;gap:2px}
+.scard small{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.scard b{font-family:var(--mono);font-weight:500;font-size:2rem;line-height:1.1;color:var(--gold);font-variant-numeric:tabular-nums}
+.streak{display:flex;align-items:center;gap:6px;font-size:.86rem;color:var(--muted);min-height:1.5em}
+.streak.on{color:#ffb38f}
+.streak svg{width:15px;height:15px}
+
+.stage{position:relative;height:clamp(420px,calc(100vh - 290px),780px);border-radius:28px;overflow:hidden;border:1px solid rgba(79,216,255,.18);
+  box-shadow:0 30px 80px -40px rgba(79,216,255,.35),inset 0 0 120px rgba(0,0,0,.45);
+  background:repeating-radial-gradient(circle at 32% 42%,rgba(120,200,255,.035) 0 1px,transparent 1px 34px),radial-gradient(120% 90% at 50% 32%,#134177 0%,#0a2650 42%,#05142e 100%)}
+.maphost{position:absolute;inset:0}
+.stage .loading{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--muted);font-family:var(--mono);font-size:.9rem}
+.spinner{width:42px;height:42px;border-radius:50%;border:3px solid rgba(243,238,227,.15);border-top-color:var(--accent);animation:spin 1s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.zoomctl{position:absolute;right:14px;bottom:14px;display:grid;gap:6px;z-index:3}
+.zoomctl button{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--glass);cursor:pointer;font-size:1.2rem;line-height:1;display:grid;place-items:center;backdrop-filter:blur(10px)}
+.zoomctl button:hover{border-color:rgba(243,238,227,.35)}
+.coord{position:absolute;left:14px;bottom:14px;z-index:3;font-family:var(--mono);font-size:.76rem;color:var(--muted);padding:6px 10px;border-radius:999px;background:var(--glass);border:1px solid var(--line);font-variant-numeric:tabular-nums;pointer-events:none}
+.popups{position:absolute;inset:0;pointer-events:none;z-index:4}
+.pop{position:absolute;transform:translate(-50%,-100%);font-family:var(--display);font-weight:800;font-size:1.7rem;color:var(--gold);text-shadow:0 2px 0 #000,0 0 22px rgba(255,209,102,.7);animation:popup 1.3s cubic-bezier(.2,.8,.2,1) forwards;white-space:nowrap}
+.pop.zero{color:var(--bad);text-shadow:0 2px 0 #000}
+@keyframes popup{0%{opacity:0;transform:translate(-50%,-60%) scale(.6)}15%{opacity:1;transform:translate(-50%,-120%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-260%) scale(1)}}
+
+.dock{margin-top:12px;pointer-events:none}
+.dock>*{pointer-events:auto}
+.dock>.tip,.dock>.tipbar{pointer-events:none}
+.dock>.tipbar>.btn{pointer-events:auto}
+.tip{padding:12px 16px;display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.9rem;justify-content:center;text-align:center}
+.tipbar .btn.skip{pointer-events:auto;padding:12px 18px}
+.tip kbd,.res kbd{font-family:var(--mono);font-size:.75rem;padding:2px 6px;border:1px solid var(--line);border-radius:6px;color:var(--ink)}
+.ansform{padding:10px;display:flex;gap:8px;align-items:center}
+.ansform input{flex:1;min-width:0;font:inherit;font-size:1.2rem;font-weight:600;color:var(--ink);background:rgba(6,14,29,.7);border:1px solid var(--line);border-radius:14px;padding:13px 16px;outline:none;transition:border-color .2s}
+.ansform input:focus{border-color:var(--gold)}
+.ansform input::placeholder{color:#5c6b85;font-weight:500}
+.ansform.shake{animation:shake .38s}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.tries{font-family:var(--mono);font-size:.78rem;color:var(--muted);padding:0 6px;white-space:nowrap}
+.tries.warn{color:var(--bad)}
+.res{padding:14px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;animation:rise .35s cubic-bezier(.2,.8,.2,1) both;border-left:4px solid var(--muted)}
+.res.hit{border-left-color:var(--good)}
+.res.part{border-left-color:var(--gold)}
+.res.miss{border-left-color:var(--bad)}
+.res-main{flex:1;min-width:220px}
+.res-title{font-family:var(--display);font-weight:800;font-size:1.25rem;letter-spacing:-.02em;margin:0}
+.res.hit .res-title{color:var(--good)}
+.res.part .res-title{color:var(--gold)}
+.res.miss .res-title{color:var(--bad)}
+.res-detail{margin:2px 0 0;font-size:.95rem}
+.res-break{margin:4px 0 0;font-family:var(--mono);font-size:.76rem;color:var(--muted)}
+.res-pts{font-family:var(--mono);font-size:2rem;color:var(--gold);font-weight:500;font-variant-numeric:tabular-nums}
+.res.miss .res-pts{color:var(--muted)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+@media (min-width:900px){
+  .arena .hud{position:absolute;top:14px;left:14px;right:14px;z-index:5;margin:0;pointer-events:none}
+  .arena .hud>*{pointer-events:auto}
+  .arena .hud>.spacer{pointer-events:none}
+  .arena .qcard{max-width:560px}
+  .arena .hud .spacer{flex:1}
+  .arena .stage{height:clamp(540px,calc(100vh - 110px),860px)}
+  .arena .dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);width:min(680px,calc(100% - 140px));z-index:5;margin:0}
+  .arena .coord{bottom:auto;top:auto;left:14px;bottom:14px}
+}
+@media (max-width:899px){ .hud .spacer{display:none} }
+
+.count{position:absolute;inset:0;z-index:6;display:grid;place-items:center;pointer-events:none;background:radial-gradient(closest-side,rgba(3,8,23,.55),transparent)}
+.count span{font-family:var(--display);font-weight:800;font-size:clamp(4rem,12vw,9rem);letter-spacing:-.05em;background:linear-gradient(120deg,var(--accent),var(--accent-2) 50%,var(--cyan));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:cnt .56s cubic-bezier(.2,.9,.3,1) both}
+@keyframes cnt{from{transform:scale(1.8);opacity:0}40%{opacity:1}to{transform:scale(.9);opacity:0}}
+
+/* Carte */
+svg.map{width:100%;height:100%;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+svg.map.clickable{cursor:crosshair}
+.map .sphere{fill:rgba(255,255,255,.015);stroke:rgba(243,238,227,.10);stroke-width:1;vector-effect:non-scaling-stroke}
+.map .grat{fill:none;stroke:rgba(243,238,227,.06);stroke-width:1;vector-effect:non-scaling-stroke}
+.map .nb{fill:rgba(160,200,255,.10);stroke:rgba(160,200,255,.22);stroke-width:.8;vector-effect:non-scaling-stroke}
+.map .shadow{fill:#000;opacity:.45}
+.map .area{fill:var(--land);stroke:var(--coast);stroke-width:.7;vector-effect:non-scaling-stroke;transition:fill .18s}
+.map.france .area{stroke-width:1.3}
+.map.noborders .area{stroke:var(--land);stroke-width:.8}
+.map .regline{fill:none;stroke:#7d6a44;stroke-width:1.8;vector-effect:non-scaling-stroke;pointer-events:none}
+.map.deps .area{stroke-width:.8}
+.idf{position:absolute;z-index:4;left:14px;top:190px;width:260px;border-radius:18px;overflow:hidden;background:radial-gradient(120% 100% at 50% 30%,#17325f,#0b1a33);border:1px solid rgba(246,196,83,.35);box-shadow:0 18px 40px -18px #000}
+.idf-h{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);border-bottom:1px solid var(--faint);background:rgba(6,14,29,.6)}
+.idf svg{display:block;width:100%;height:auto;touch-action:manipulation}
+.idf svg.clickable{cursor:crosshair}
+@media (max-width:899px){ .idf{left:10px;top:10px;width:clamp(130px,38vw,180px)} .idf-h{font-size:.6rem;padding:5px 8px} }
+.map .outline{fill:none;stroke:#8d7850;stroke-width:1.6;vector-effect:non-scaling-stroke;pointer-events:none}
+.map.hoverable .area:hover{fill:var(--land-hi)}
+.map .area.target{fill:var(--accent);stroke:#ffe1c2;filter:drop-shadow(0 0 6px rgba(255,106,77,.8))}
+.map .area.hit{fill:var(--good);stroke:#d6ffe9}
+.map .area.reveal{fill:var(--good);stroke:#d6ffe9;animation:flash 1s ease-in-out 2}
+.map .area.wrong{fill:#f2a593}
+@keyframes flash{50%{fill:#8ff0c0}}
+.map .gline{fill:none;stroke:var(--gold);stroke-width:2.2;stroke-dasharray:7 6;vector-effect:non-scaling-stroke;animation:dash 1s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-26}}
+.map .ring{fill:rgba(255,91,58,.12);stroke:var(--accent);stroke-width:2.5;animation:ring 1.4s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes ring{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.5);opacity:0}}
+.map .pin-you path{fill:var(--accent);stroke:#fff;stroke-width:1.6}
+.map .pin-true path{fill:var(--good);stroke:#fff;stroke-width:1.6}
+.map .pin circle{fill:#fff}
+.map .pin{animation:drop .35s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes drop{from{transform:translateY(-14px);opacity:0}}
+.map .lbl{font-family:var(--display);font-weight:700;font-size:15px;fill:var(--ink);paint-order:stroke;stroke:#06101f;stroke-width:4px;stroke-linejoin:round}
+.map .lbl.km{font-family:var(--mono);font-weight:500;font-size:13px;fill:var(--gold)}
+
+/* Fin de partie */
+.end{display:grid;gap:14px;margin-top:22px}
+.end-hero{position:relative;overflow:hidden;display:grid;grid-template-columns:auto 1fr;gap:34px;align-items:center;padding:30px 34px}
+.end-hero::before{content:"";position:absolute;inset:-40%;background:radial-gradient(closest-side,color-mix(in srgb,var(--rc) 30%,transparent),transparent 70%);left:-30%;right:auto;width:90%;pointer-events:none}
+.end-emblem{position:relative;width:220px;height:220px;display:grid;place-items:center}
+.end-emblem .rays{position:absolute;inset:-30px;background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--rc) 28%,transparent) 0 6deg,transparent 6deg 18deg);border-radius:50%;mask:radial-gradient(closest-side,#000 40%,transparent 100%);-webkit-mask:radial-gradient(closest-side,#000 40%,transparent 100%);animation:spin 22s linear infinite}
+.end-emblem .emblem{position:relative;width:200px;height:200px;filter:drop-shadow(0 16px 34px color-mix(in srgb,var(--rc) 60%,transparent));animation:reveal 1s cubic-bezier(.2,1.4,.4,1) both .15s}
+@keyframes reveal{from{transform:scale(.3) rotate(-25deg);opacity:0}}
+.end-info{position:relative;min-width:0}
+.end-rank{font-family:var(--display);font-weight:800;font-size:clamp(2.6rem,6vw,4.6rem);line-height:.95;letter-spacing:-.045em;margin:0 0 8px;color:var(--rc)}
+.end-score{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.end-score b{font-family:var(--mono);font-weight:500;font-size:clamp(2rem,4vw,3rem);font-variant-numeric:tabular-nums}
+.end-score span{color:var(--muted)}
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;min-height:0}
+.pill{font-family:var(--mono);font-size:.76rem;letter-spacing:.06em;text-transform:uppercase;padding:5px 11px;border-radius:999px;background:rgba(246,196,83,.15);color:var(--gold);border:1px solid rgba(246,196,83,.4);animation:rise .5s both .9s}
+.pill.promo{background:rgba(47,208,138,.14);color:var(--good);border-color:rgba(47,208,138,.4)}
+.next{max-width:520px}
+.next-l{display:flex;justify-content:space-between;gap:10px;font-size:.88rem;color:var(--muted);margin-bottom:8px}
+.next-l b{color:var(--ink)}
+.bar{height:10px;border-radius:99px;background:rgba(243,238,227,.1);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,color-mix(in srgb,var(--rc) 70%,#000),var(--rc));transition:width 1.4s cubic-bezier(.2,.8,.2,1) .3s}
+.end-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
+.panel{padding:22px}
+.panel h3{font-family:var(--display);font-size:1.15rem;letter-spacing:-.02em;margin:0 0 14px}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stat{padding:12px 14px;border-radius:14px;background:rgba(243,238,227,.04);border:1px solid var(--faint)}
+.stat small{display:block;font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.stat b{font-family:var(--mono);font-weight:500;font-size:1.3rem;font-variant-numeric:tabular-nums}
+.field{display:grid;gap:8px;margin-bottom:14px}
+.field label{font-weight:600;font-size:.92rem}
+.field input{font:inherit;font-size:1.05rem;color:var(--ink);background:rgba(6,14,29,.7);border:1px solid var(--line);border-radius:12px;padding:12px 14px;outline:none}
+.field input:focus{border-color:var(--gold)}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:34px;height:34px;border-radius:50%;border:2px solid transparent;background:var(--av);cursor:pointer;padding:0}
+.sw[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 3px rgba(243,238,227,.25)}
+.saved{display:flex;align-items:center;gap:14px}
+.saved .big{font-family:var(--display);font-weight:800;font-size:2.4rem;color:var(--gold);line-height:1}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+.recap{width:100%;border-collapse:collapse}
+.recap td{padding:9px 8px;border-top:1px solid var(--faint);font-size:.93rem;vertical-align:middle}
+.recap td.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.recap td.det{color:var(--muted);font-size:.86rem}
+.mark{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:.75rem;font-weight:700;color:#06101f}
+.mark.hit{background:var(--good)}
+.mark.part{background:var(--gold)}
+.mark.miss{background:var(--bad)}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* Classement */
+.board{margin-top:26px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.tab{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:none;cursor:pointer;font-weight:600;font-size:.9rem;color:var(--muted)}
+.tab[aria-pressed="true"]{background:var(--ink);color:var(--deep);border-color:var(--ink)}
+.podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end;margin-bottom:14px}
+.pod{display:grid;justify-items:center;gap:6px;text-align:center;padding:20px 12px;border-radius:22px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(243,238,227,.06),rgba(243,238,227,.02))}
+.pod.p1{padding-top:30px;border-color:rgba(246,196,83,.5);background:linear-gradient(180deg,rgba(246,196,83,.14),rgba(246,196,83,.02))}
+.pod .place{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+.pod .emblem{width:64px;height:64px}
+.pod.p1 .emblem{width:84px;height:84px}
+.pod b{font-family:var(--display);font-size:1.1rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;justify-content:center}
+.pod .sc{font-family:var(--mono);color:var(--gold)}
+.tablewrap{overflow-x:auto;padding:6px 10px}
+.lb{width:100%;border-collapse:collapse;min-width:560px}
+.lb th,.lb td{padding:12px 10px;text-align:left;border-bottom:1px solid var(--faint);white-space:nowrap}
+.lb th{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.lb td.num,.lb th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.lb tr.me td{background:rgba(255,91,58,.10)}
+.who{display:flex;align-items:center;gap:10px}
+.who .avatar{width:28px;height:28px;font-size:.8rem}
+.rk{display:inline-flex;align-items:center;gap:8px}
+.rk .emblem{width:26px;height:26px}
+.empty{padding:40px 20px;text-align:center;color:var(--muted)}
+.src{display:inline-flex;align-items:center;gap:8px;font-size:.86rem;color:var(--muted)}
+.src i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.src.live i{background:var(--good);box-shadow:0 0 10px var(--good)}
+
+.live-chip{display:inline-flex;align-items:center;gap:8px;font-size:.88rem;font-weight:600;padding:9px 14px}
+.dot-live{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 rgba(47,208,138,.6);animation:livepulse 1.8s infinite;flex:none}
+@keyframes livepulse{70%{box-shadow:0 0 0 8px rgba(47,208,138,0)}100%{box-shadow:0 0 0 0 rgba(47,208,138,0)}}
+.online{padding:16px 18px;margin-bottom:16px}
+.online-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.online-h h3{margin:0;font-family:var(--display);font-size:1.1rem;letter-spacing:-.02em}
+.online-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.peer{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(243,238,227,.04);border:1px solid var(--faint);min-width:0}
+.peer .avatar{width:30px;height:30px;font-size:.82rem}
+.peer.playing{border-color:rgba(47,208,138,.35)}
+.peer-txt{min-width:0}
+.peer-txt b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.peer-txt > span{display:block;font-size:.8rem;color:var(--muted);line-height:1.35}
+.peer .emblem{width:26px;height:26px;margin-left:auto;flex:none}
+.on-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--good);margin-left:6px;vertical-align:middle;box-shadow:0 0 8px var(--good)}
+.lb tr.flash td{animation:rowflash 2.4s ease-out}
+@keyframes rowflash{0%{background:rgba(246,196,83,.35)}100%{background:transparent}}
+.toasts{position:fixed;left:50%;transform:translateX(-50%);top:82px;z-index:70;justify-items:center;display:grid;gap:8px;max-width:min(360px,calc(100vw - 36px))}
+.toast{padding:12px 14px;display:flex;gap:10px;align-items:center;font-size:.9rem;animation:rise .35s both}
+.toast .emblem{width:30px;height:30px;flex:none}
+
+.chat-btn{position:relative}
+.badge[hidden]{display:none}
+.badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:var(--accent-ink);font-size:.7rem;font-weight:800;display:grid;place-items:center;line-height:1}
+.chat{position:fixed;z-index:40;top:76px;right:18px;bottom:18px;width:min(380px,calc(100vw - 36px));display:flex;flex-direction:column;border-radius:22px;overflow:hidden;background:rgba(5,15,36,.86);box-shadow:0 30px 80px -30px #000,0 0 0 1px rgba(79,216,255,.12);animation:slidein .28s cubic-bezier(.2,.8,.2,1)}
+.chat[hidden]{display:none}
+@keyframes slidein{from{transform:translateX(24px);opacity:0}}
+.chat-h{display:flex;align-items:center;gap:10px;padding:12px 12px 12px 16px;border-bottom:1px solid var(--faint)}
+.chat-h h2{margin:0;font-family:var(--display);font-size:1.1rem;letter-spacing:-.02em}
+.chat-on{margin-left:auto;font-size:.8rem;color:var(--muted)}
+.chat-h .btn{width:34px;height:34px;padding:0;font-size:.9rem}
+.chat-list{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth}
+.msg{display:flex;gap:9px;align-items:flex-start;animation:rise .25s both}
+.msg .avatar{width:28px;height:28px;font-size:.78rem;margin-top:2px}
+.msg-b{min-width:0;max-width:calc(100% - 40px)}
+.msg-n{font-size:.8rem;color:var(--muted)}
+.msg-n b{color:var(--ink);font-weight:600;margin-right:6px}
+.msg-t{margin:2px 0 0;padding:8px 12px;border-radius:4px 14px 14px 14px;background:rgba(190,220,255,.07);border:1px solid var(--faint);overflow-wrap:anywhere;white-space:pre-wrap;font-size:.94rem;line-height:1.4}
+.msg.me{flex-direction:row-reverse}
+.msg.me .msg-b{text-align:right}
+.msg.me .msg-t{border-radius:14px 4px 14px 14px;background:linear-gradient(135deg,rgba(255,106,77,.22),rgba(255,181,71,.14));border-color:rgba(255,140,77,.3);text-align:left;display:inline-block}
+.chat-day{align-self:center;font-family:var(--mono);font-size:.7rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.chat-empty{margin:auto;text-align:center;color:var(--muted);font-size:.9rem;padding:20px}
+.chat-foot{padding:10px;border-top:1px solid var(--faint)}
+.chat-form{display:flex;gap:8px}
+.chat-form input{flex:1;min-width:0;font:inherit;color:var(--ink);background:rgba(3,8,23,.7);border:1px solid var(--line);border-radius:12px;padding:11px 13px;outline:none}
+.chat-form input:focus{border-color:var(--cyan)}
+.chat-note{font-size:.84rem;color:var(--muted);text-align:center;margin:4px 0}
+.chat-count{font-family:var(--mono);font-size:.7rem;color:var(--muted);text-align:right;margin-top:4px;min-height:1em}
+@media (max-width:640px){ .chat{top:auto;right:0;left:0;bottom:0;width:auto;height:min(78vh,620px);border-radius:22px 22px 0 0} }
+
+/* Emblèmes, cadres, titres, certification */
+.emblem{overflow:visible}
+.emblem .e-rays{transform-origin:50px 52px;animation:spin 16s linear infinite}
+.emblem.t7{filter:drop-shadow(0 0 6px rgba(255,140,60,.75))}
+.emblem.t7 .e-crown{animation:crownglow 1.6s ease-in-out infinite alternate}
+@keyframes crownglow{to{filter:brightness(1.35) drop-shadow(0 0 4px #fff3b0)}}
+.avatar{position:relative}
+.avatar.fr1{box-shadow:0 0 0 2px #dfe6f0}
+.avatar.fr2{box-shadow:0 0 0 2px #ffd24a,0 0 10px rgba(255,210,74,.55)}
+.avatar.fr3{box-shadow:0 0 0 2px #63d9c9,0 0 12px rgba(99,217,201,.6)}
+.avatar.fr4{box-shadow:0 0 0 2px #7cc0ff,0 0 14px rgba(124,192,255,.8);animation:frpulse 2s ease-in-out infinite}
+.avatar.fr5{box-shadow:0 0 0 2px #b484ff,0 0 16px rgba(180,132,255,.9);animation:frpulse 1.6s ease-in-out infinite}
+.avatar.fr6{box-shadow:0 0 0 2px #ff5f8f,0 0 16px rgba(255,95,143,.9);animation:frpulse 1.4s ease-in-out infinite}
+.avatar.fr7::before{content:"";position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(#ffd86b,#ff6a4d,#ff3b6b,#7d6bff,#4fd8ff,#ffd86b);z-index:-1;animation:spin 3s linear infinite}
+.avatar.fr7{box-shadow:0 0 18px rgba(255,120,60,.8)}
+@keyframes frpulse{50%{filter:brightness(1.25)}}
+.ptitle{display:inline-block;font-family:var(--mono);font-size:.68rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:6px;white-space:nowrap;line-height:1.4}
+.ptitle.t5{color:#7fd0ff;border:1px solid rgba(79,180,255,.6);animation:blinkB 1.1s ease-in-out infinite}
+.ptitle.t6{color:#ff8fc4;border:1px solid rgba(255,95,168,.6);animation:blinkP 1s ease-in-out infinite}
+.ptitle.t7{color:#ff5a5a;border:1px solid rgba(255,60,60,.7);animation:blinkR .9s ease-in-out infinite}
+@keyframes blinkB{0%,100%{color:#4fb4ff;text-shadow:0 0 6px rgba(79,180,255,.9);background:rgba(79,180,255,.12)}50%{color:#d6f0ff;text-shadow:0 0 14px #4fd8ff;background:rgba(79,180,255,.28)}}
+@keyframes blinkP{0%,100%{color:#ff5fa8;text-shadow:0 0 6px rgba(255,95,168,.9);background:rgba(255,95,168,.12)}50%{color:#ffd6ea;text-shadow:0 0 14px #ff5fa8;background:rgba(255,95,168,.3)}}
+@keyframes blinkR{0%,100%{color:#ff3b3b;text-shadow:0 0 8px rgba(255,59,59,1);background:rgba(255,59,59,.14)}50%{color:#ffe0e0;text-shadow:0 0 18px #ff2020,0 0 4px #fff;background:rgba(255,59,59,.34)}}
+.verif{width:16px;height:16px;vertical-align:-3px;margin-left:4px;flex:none}
+.adm{display:inline-block;margin-left:5px;font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#1d9bf0;border:1px solid rgba(29,155,240,.55);border-radius:6px;padding:1px 6px;vertical-align:1px;background:rgba(29,155,240,.1)}
+.namecol{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rewards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.rw{position:relative;display:grid;justify-items:center;gap:6px;text-align:center;padding:20px 12px 16px;border-radius:20px;border:1px solid var(--line);background:linear-gradient(180deg,color-mix(in srgb,var(--rc) 10%,transparent),rgba(6,18,42,.6));overflow:hidden;transition:transform .25s,box-shadow .25s}
+.rw:hover{transform:translateY(-4px);box-shadow:0 18px 40px -20px var(--rc)}
+.rw .emblem{width:92px;height:92px;filter:drop-shadow(0 10px 18px color-mix(in srgb,var(--rc) 55%,transparent));transition:transform .4s cubic-bezier(.2,1.4,.4,1)}
+.rw:hover .emblem{transform:scale(1.08) rotate(-4deg)}
+.rw b{font-family:var(--display);font-size:1.05rem;letter-spacing:-.01em}
+.rw .thr{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+.rw p{margin:2px 0 0;font-size:.84rem;color:var(--ink);opacity:.9}
+.rw.cur{border-color:var(--rc);box-shadow:0 0 0 1px var(--rc) inset,0 0 34px -10px var(--rc)}
+.rw.cur::after{content:"TON RANG";position:absolute;top:10px;right:-28px;transform:rotate(35deg);background:var(--rc);color:#06101f;font-family:var(--mono);font-size:.6rem;font-weight:700;padding:3px 30px;letter-spacing:.1em}
+@media (max-width:980px){ .rewards{grid-template-columns:repeat(2,minmax(0,1fr))} }
+
+/* Effets de jeu */
+.judge{position:absolute;left:50%;top:38%;z-index:7;transform:translate(-50%,-50%);pointer-events:none;font-family:var(--display);font-weight:800;font-size:clamp(2rem,6vw,4.2rem);letter-spacing:-.03em;white-space:nowrap;animation:judge 1.15s cubic-bezier(.2,1.4,.3,1) forwards;-webkit-text-stroke:1px rgba(0,0,0,.25)}
+.judge.hit{background:linear-gradient(90deg,#9effd9,#3ee0a8,#4fd8ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 4px 18px rgba(62,224,168,.6))}
+.judge.part{background:linear-gradient(90deg,#fff1b8,#ffd166,#ffb547);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 4px 18px rgba(255,209,102,.5))}
+.judge.miss{color:#ff5c7a;filter:drop-shadow(0 4px 18px rgba(255,92,122,.6))}
+@keyframes judge{0%{opacity:0;transform:translate(-50%,-50%) scale(2.2) rotate(-6deg)}18%{opacity:1;transform:translate(-50%,-50%) scale(.92) rotate(2deg)}28%{transform:translate(-50%,-50%) scale(1.04) rotate(0)}75%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-80%) scale(.96)}}
+.spark{position:absolute;z-index:6;width:7px;height:7px;border-radius:2px;pointer-events:none;background:var(--c);box-shadow:0 0 8px var(--c);animation:spark .75s cubic-bezier(.1,.7,.3,1) forwards}
+@keyframes spark{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.2) rotate(240deg);opacity:0}}
+.ring-fx{position:absolute;z-index:6;width:20px;height:20px;border-radius:50%;border:3px solid var(--c);pointer-events:none;transform:translate(-50%,-50%);animation:ringfx .6s ease-out forwards}
+@keyframes ringfx{to{width:150px;height:150px;opacity:0;border-width:1px}}
+.flash{position:absolute;inset:0;z-index:5;pointer-events:none;border-radius:inherit;animation:flash .6s ease-out forwards}
+.flash.hit{box-shadow:inset 0 0 0 3px rgba(62,224,168,.9),inset 0 0 90px rgba(62,224,168,.35)}
+.flash.part{box-shadow:inset 0 0 0 3px rgba(255,209,102,.8),inset 0 0 90px rgba(255,209,102,.25)}
+.flash.miss{box-shadow:inset 0 0 0 3px rgba(255,92,122,.9),inset 0 0 120px rgba(255,40,80,.45)}
+@keyframes flash{from{opacity:1}to{opacity:0}}
+.stage.shake{animation:stageshake .45s cubic-bezier(.36,.07,.19,.97)}
+@keyframes stageshake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
+.stage.danger{animation:danger .5s ease-in-out infinite alternate}
+@keyframes danger{to{box-shadow:0 0 0 2px rgba(255,92,122,.75),0 0 40px -6px rgba(255,60,90,.7),inset 0 0 120px rgba(80,0,20,.4)}}
+.combo{position:absolute;z-index:7;left:50%;top:22%;transform:translateX(-50%);pointer-events:none;font-family:var(--display);font-weight:800;font-size:clamp(1.3rem,3.4vw,2.2rem);letter-spacing:.02em;padding:8px 22px;border-radius:999px;color:#1d0a03;background:linear-gradient(90deg,#ffd166,#ff8a3d,#ff4f6a);box-shadow:0 10px 30px -8px rgba(255,100,60,.9);animation:combo 1.4s cubic-bezier(.2,1.3,.3,1) forwards;white-space:nowrap}
+@keyframes combo{0%{opacity:0;transform:translateX(-50%) translateY(-20px) scale(.5)}15%{opacity:1;transform:translateX(-50%) scale(1.12)}25%{transform:translateX(-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-14px)}}
+.qcard.qin .q-prompt{animation:qin .5s cubic-bezier(.2,1.2,.3,1) both}
+.qcard.qin .q-hint{animation:qin .5s cubic-bezier(.2,1.2,.3,1) .08s both}
+@keyframes qin{from{opacity:0;transform:translateX(-24px);filter:blur(6px)}}
+.scard b.bump{animation:bump .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes bump{40%{transform:scale(1.25);color:#fff}}
+.mode{animation:cardin .6s cubic-bezier(.2,1,.3,1) both}
+.modes .mode:nth-child(2){animation-delay:.06s}.modes .mode:nth-child(3){animation-delay:.12s}.modes .mode:nth-child(4){animation-delay:.18s}
+@keyframes cardin{from{opacity:0;transform:translateY(22px) scale(.97)}}
+.btn.primary{position:relative;overflow:hidden}
+.btn.primary::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);transform:translateX(-120%);transition:transform .6s}
+.btn.primary:hover::after{transform:translateX(120%)}
+.btn.skip{border-color:rgba(255,181,71,.45);color:var(--accent-2)}
+.btn.skip.hot{background:linear-gradient(135deg,rgba(255,106,77,.25),rgba(255,181,71,.2));color:#fff;animation:hot 1s ease-in-out infinite alternate}
+@keyframes hot{to{box-shadow:0 0 0 3px rgba(255,181,71,.35),0 0 24px -4px rgba(255,140,60,.8)}}
+.tipbar{display:flex;gap:10px;align-items:center}
+.tipbar .tip{flex:1}
+.end-emblem .emblem{width:220px;height:220px}
+.end-emblem .shock{position:absolute;inset:20%;border-radius:50%;border:3px solid var(--rc);opacity:0;animation:shock 1.1s ease-out .55s forwards}
+@keyframes shock{0%{opacity:1;transform:scale(.4)}100%{opacity:0;transform:scale(1.9)}}
+.stamp{display:inline-block;font-family:var(--mono);font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--rc);border:2px solid var(--rc);padding:4px 10px;border-radius:6px;transform:rotate(-3deg);margin-bottom:10px;animation:stamp .5s cubic-bezier(.2,1.6,.4,1) .5s both}
+@keyframes stamp{from{opacity:0;transform:rotate(-3deg) scale(2.2)}}
+.unlock{margin:4px 0 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;animation:rise .5s both 1.1s;font-size:.92rem}
+
+/* Fenêtre d'inscription */
+.modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:rgba(3,7,15,.66);backdrop-filter:blur(6px);animation:fade .2s both}
+.modal .box{width:min(460px,100%);padding:26px;animation:rise .3s both}
+.modal h2{font-family:var(--display);font-size:1.6rem;letter-spacing:-.03em;margin:0 0 6px}
+.modal p{margin:0 0 18px}
+.err{color:var(--bad);font-size:.86rem;min-height:1.2em;margin:-6px 0 10px}
+@keyframes fade{from{opacity:0}}
+canvas.confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:60}
+
+@media (max-width:980px){
+  .hero{grid-template-columns:1fr}
+  .globe-wrap{max-width:420px;grid-row:1}
+  .ladder{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .end-grid{grid-template-columns:1fr}
+}
+@media (max-width:899px){
+  .arena .dock{position:absolute;left:10px;right:10px;bottom:10px;z-index:5;margin:0}
+  .arena .coord{display:none}
+  .arena .zoomctl{top:10px;bottom:auto;right:10px}
+  .arena .stage{height:clamp(340px,calc(100svh - 300px),620px)}
+  .tip{font-size:.8rem;padding:9px 12px}
+}
+@media (max-width:640px){
+  .shell{padding:0 14px 60px}
+  .top{padding:10px 14px;gap:8px}
+  .nav{gap:6px}
+  .nav .btn{padding:8px 12px;font-size:.88rem}
+  .nav .btn.icon{width:36px;height:36px;padding:8px}
+  .qcard{padding:12px 14px 10px;gap:8px}
+  .q-count{font-size:.75rem}
+  .tring{width:52px;height:52px}
+  .ansform{flex-wrap:wrap}
+  .ansform input{flex:1 1 100%;font-size:1.05rem;padding:11px 14px}
+  .ansform .btn{flex:1}
+  .res{gap:10px;padding:12px 14px}
+  .res-pts{font-size:1.5rem}
+  .res .btn{flex:1 1 100%}
+  .nav .btn.hide-s{display:none}
+  .live-chip .hide-s{display:none}
+  .live-chip{padding:8px 10px}
+  .chip-prof .pname{display:none}
+  .chip-prof{padding:5px}
+  .diffs,.how{grid-template-columns:1fr}
+  .hud{flex-direction:column}
+  .scard{width:auto;display:flex;align-items:center;gap:14px;padding:12px 16px}
+  .scard b{font-size:1.5rem}
+  .stage{height:min(62vh,520px)}
+  .end-hero{grid-template-columns:1fr;justify-items:center;text-align:center;padding:26px 18px}
+  .end-score,.pills{justify-content:center}
+  .next{margin:0 auto;width:100%}
+  .podium{grid-template-columns:1fr}
+  .pod.p1{order:-1}
+  .ladder{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:400px){ .brand span{display:none} }
+@media (max-width:420px){ .nav .btn{padding:7px 10px;font-size:.82rem} .nav .btn.icon{width:34px;height:34px} .live-chip{padding:7px 9px} }
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas><div class="aurora" aria-hidden="true"></div>
+<header class="top">
+  <button class="brand" data-act="home" aria-label="Accueil Géo Arena">
+    <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><defs>
+      <linearGradient id="lgA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb547"/><stop offset=".55" stop-color="#ff6a4d"/><stop offset="1" stop-color="#b8264a"/></linearGradient>
+      <linearGradient id="lgB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f2f5c"/><stop offset="1" stop-color="#050d22"/></linearGradient></defs>
+      <path d="M20 2 L36 11 V29 L20 38 L4 29 V11 Z" fill="url(#lgA)"/>
+      <path d="M20 6 L32.5 13 V27 L20 34 L7.5 27 V13 Z" fill="url(#lgB)"/>
+      <circle cx="20" cy="20" r="8.5" fill="none" stroke="#4fd8ff" stroke-width="1.4"/><ellipse cx="20" cy="20" rx="3.6" ry="8.5" fill="none" stroke="#4fd8ff" stroke-width="1" opacity=".7"/><path d="M11.5 20 H28.5" stroke="#4fd8ff" stroke-width="1" opacity=".7"/>
+      <path d="M20 9.5c-2.7 0-4.7 2-4.7 4.6 0 3.4 4.7 8.4 4.7 8.4s4.7-5 4.7-8.4c0-2.6-2-4.6-4.7-4.6z" fill="#ffb547" stroke="#050d22" stroke-width="1.2"/><circle cx="20" cy="14" r="1.6" fill="#050d22"/></svg>
+    <span>GÉO<em>ARENA</em></span>
+  </button>
+  <nav class="nav">
+    <button class="btn hide-s" data-act="play">Jouer</button>
+    <button class="btn" data-act="board">Classement</button>
+    <button class="btn icon" id="soundBtn" data-act="sound" aria-label="Son activé"></button>
+    <span id="liveSlot"></span>
+    <button class="btn icon chat-btn" id="chatBtn" data-act="chat" aria-label="Ouvrir le chat" aria-expanded="false">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>
+      <span class="badge" id="chatBadge" hidden>0</span></button>
+    <span id="profSlot"></span>
+  </nav>
+</header>
+<div class="shell"><main id="app"></main></div>
+<aside class="chat glass" id="chat" aria-label="Chat en direct" hidden>
+  <div class="chat-h"><i class="dot-live"></i><h2>Chat en direct</h2><span class="chat-on" id="chatOn"></span>
+    <button class="btn icon" data-act="chat" aria-label="Fermer le chat">✕</button></div>
+  <div class="chat-list" id="chatList" aria-live="polite"></div>
+  <div class="chat-foot" id="chatFoot"></div>
+</aside>
+
+<script>
+/* ==========================================================================
+   CONFIGURATION DU SITE
+   Sans Firebase, le jeu fonctionne en solo (classement sur l'appareil).
+   Pour le classement partagé, le chat et les joueurs en ligne, collez ici
+   l'objet firebaseConfig de votre projet Firebase (voir LISEZMOI.md).
+   ========================================================================== */
+window.GEO_ARENA_CONFIG = {
+  firebase: null,
+  /* exemple :
+  firebase: {
+    apiKey: "...",
+    authDomain: "mon-projet.firebaseapp.com",
+    projectId: "mon-projet",
+    appId: "..."
+  },
+  */
+  adminUid: ""   // votre identifiant joueur (affiché dans « Mon profil ») pour le badge Admin
+};
+</script>
+<script>
+/* Passerelle Firebase : expose la même interface que la plateforme Claude
+   (db, user, room) pour que le jeu fonctionne à l'identique sur un site web. */
+(function(){
+  var cfg = window.GEO_ARENA_CONFIG || {};
+  if (!cfg.firebase) return;
+  var V = '10.12.2', base = 'https://www.gstatic.com/firebasejs/' + V + '/';
+  function load(src){ return new Promise(function(ok, ko){ var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
+  var ready = (async function(){
+    await load(base + 'firebase-app-compat.js');
+    await load(base + 'firebase-auth-compat.js');
+    await load(base + 'firebase-firestore-compat.js');
+    firebase.initializeApp(cfg.firebase);
+    var auth = firebase.auth();
+    await new Promise(function(res, rej){
+      var off = auth.onAuthStateChanged(function(u){ if (u){ off(); res(); } });
+      auth.signInAnonymously().catch(rej);
+    });
+    return {fs:firebase.firestore(), uid:auth.currentUser.uid};
+  })();
+  ready.catch(function(e){ console.warn('Géo Arena : connexion Firebase impossible, passage en mode solo.', e); });
+
+  var roomP = null;
+  function makeRoom(fs, uid){
+    var TAB = Math.random().toString(36).slice(2, 10), DOC = uid + '_' + TAB;
+    var ref = fs.collection('presence').doc(DOC);
+    var mine = {}, handlers = [], peers = Object.freeze([]), timer = 0, last = [];
+    function write(){ return ref.set({by:uid, presence:mine, at:Date.now()}).catch(function(){}); }
+    function schedule(){ clearTimeout(timer); timer = setTimeout(write, 350); }
+    function deliver(){
+      var now = Date.now();
+      peers = Object.freeze(last.filter(function(p){ return now - p.updatedAt < 75000; }));
+      handlers.forEach(function(h){ try { h({peers:peers, joined:[], left:[], updated:[]}); } catch(e){} });
+    }
+    setInterval(write, 25000);
+    setInterval(deliver, 20000);
+    addEventListener('pagehide', function(){ ref.delete().catch(function(){}); });
+    fs.collection('presence').onSnapshot(function(snap){
+      last = snap.docs.map(function(d){
+        var v = d.data() || {};
+        return {peer:d.id, by:typeof v.by === 'string' ? v.by : null, isMe:v.by === uid, sameTab:d.id === DOC, kind:'viewer', guest:false,
+          presence:(v.presence && typeof v.presence === 'object') ? v.presence : {}, updatedAt:+v.at || 0};
+      });
+      deliver();
+    }, function(){});
+    write();
+    return {
+      presence:function(patch){
+        var n = Object.assign({}, mine);
+        Object.keys(patch || {}).forEach(function(k){ if (patch[k] === null) delete n[k]; else n[k] = patch[k]; });
+        mine = n; schedule(); return Promise.resolve();
+      },
+      onPeers:function(fn){ handlers.push(fn); setTimeout(function(){ fn({peers:peers, joined:[], left:[], updated:[]}); }, 0); return function(){ handlers = handlers.filter(function(h){ return h !== fn; }); }; },
+      peers:function(){ return peers; },
+      connected:function(){ return true; }
+    };
+  }
+
+  window.claude = {
+    use: async function(name){
+      try {
+        var r = await ready, fs = r.fs, uid = r.uid;
+        if (name === 'db') return {collection:function(p){ return fs.collection(p); }, doc:function(p){ return fs.doc(p); }};
+        if (name === 'user') return {
+          id:async function(){ return uid; },
+          can:async function(){ return true; },
+          isOwner:async function(){ return !!cfg.adminUid && cfg.adminUid === uid; }
+        };
+        if (name === 'room'){ if (!roomP) roomP = makeRoom(fs, uid); return roomP; }
+        return null;
+      } catch(e){ return null; }
+    }
+  };
+})();
+</script>
+
+<script>
+"use strict";
+/* =====================================================================
+   Utilitaires
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const app = $('#app');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Math.round(n).toLocaleString('fr-FR');
+const fmt1 = n => n.toFixed(1).replace('.', ',');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+const LS = {profile:'ga2-profile', players:'ga2-players', sound:'ga2-sound', diff:'ga2-diff'};
+const R_EARTH = 6371;
+const REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function shuffle(a){ const b = a.slice(); for (let i = b.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; }
+function deacc(s){ return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+function norm(s){ return deacc(s).replace(/[^a-z0-9]/g, ''); }
+function clean(s){
+  let t = deacc(s).replace(/[’'`]/g, ' ').replace(/[-_.]/g, ' ').replace(/\s+/g, ' ').trim();
+  t = t.replace(/^(le|la|les|l)\s+/, '').replace(/\bsaint\b/g, 'st').replace(/\bsainte\b/g, 'ste');
+  return t.replace(/[^a-z0-9]/g, '');
+}
+function lev(a, b){
+  const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+  let prev = Array.from({length:n + 1}, (_, j) => j);
+  for (let i = 1; i <= m; i++){
+    const cur = [i];
+    for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[n];
+}
+const exactMatch = (v, list) => { const c = clean(v); return !!c && list.some(a => clean(a) === c); };
+let UNIVERSE = null;
+const fuzzyMatch = (v, list) => {
+  const c = clean(v); if (!c) return false;
+  const own = new Set(list.map(clean));
+  if (own.has(c)) return true;
+  if (!UNIVERSE) UNIVERSE = [...new Set(COUNTRIES.flatMap(k => [k.name, k.cap, ...k.nameAl, ...k.capAl]).map(clean))];
+  let bestOwn = Infinity;
+  own.forEach(x => { const tol = x.length >= 9 ? 2 : x.length >= 5 ? 1 : 0; const dd = lev(x, c); if (dd <= tol) bestOwn = Math.min(bestOwn, dd); });
+  if (!isFinite(bestOwn)) return false;
+  // refusé si un autre pays ou une autre capitale est aussi proche de ce qui a été tapé
+  return !UNIVERSE.some(x => !own.has(x) && lev(x, c) <= bestOwn);
+};
+function pattern(word, reveal){
+  // reveal = 'first' : première lettre + tirets
+  let first = true;
+  return [...word].map(ch => {
+    if (/[\p{L}]/u.test(ch)){ if (first && reveal){ first = false; return ch.toUpperCase(); } first = false; return '_'; }
+    first = ch === ' ' || ch === '-' ? false : first;
+    return ch === ' ' ? ' ' : ch;
+  }).join(' ');
+}
+
+/* =====================================================================
+   Données de jeu
+   ===================================================================== */
+const DIFF = {
+  facile:    {label:'Facile',    mult:1,   tMap:20, tType:20, areaD:{fr:300, dep:150, w:1500}, cityK:70, cityHit:50, tiers:[1],   frBorders:true,  hover:true,  max:'Diamant',
+              lines:['20 s par question', 'Indices visibles', 'Lieux les plus connus']},
+  moyen:     {label:'Moyen',     mult:1.5, tMap:15, tType:15, areaD:{fr:180, dep:90, w:900},  cityK:45, cityHit:35, tiers:[1,2], frBorders:true,  hover:true,  max:'Grand Master',
+              lines:['15 s par question', 'Première lettre en indice', 'Plus de lieux']},
+  difficile: {label:'Difficile', mult:2,   tMap:10, tType:12, areaD:{fr:100, dep:50, w:500},  cityK:28, cityHit:20, tiers:[2,3], frBorders:false, hover:false, max:'Légende',
+              lines:['10 s par question', 'Aucun indice, frontières intérieures masquées', 'Lieux pointus']}
+};
+const RANKS = [
+  {n:'Bronze',       min:0,     g:['#f3b886','#8c4a1f'], c:'#d9894f'},
+  {n:'Argent',       min:2500,  g:['#ffffff','#8792a6'], c:'#c9d2e0'},
+  {n:'Or',           min:5000,  g:['#ffe58f','#c4860c'], c:'#f2c14e'},
+  {n:'Platine',      min:8000,  g:['#d4fff7','#2f9e92'], c:'#6fd6c9'},
+  {n:'Diamant',      min:11000, g:['#cfe6ff','#2a64d8'], c:'#6aa5ff'},
+  {n:'Master',       min:14500, g:['#ecd8ff','#7b3fe4'], c:'#b084ff'},
+  {n:'Grand Master', min:18500, g:['#ffd0da','#cf1f4c'], c:'#ff5f86'},
+  {n:'Légende',      min:22500, g:['#fff6c2','#ff8a00'], c:'#ffc94a'}
+];
+const rankIdx = t => { let i = 0; RANKS.forEach((r, k) => { if (t >= r.min) i = k; }); return i; };
+const rankByName = n => Math.max(0, RANKS.findIndex(r => r.n === n));
+
+const MODES = [
+  {id:'regions',    group:'France', name:'Régions de France',     short:'Régions',       type:'map',  view:'france', desc:'Clique dans la bonne région. Dedans : précision totale. À côté : des points selon la distance.'},
+  {id:'departements', group:'France', name:'Départements',      short:'Départements',  type:'map',  view:'france', layer:'deps', desc:'Du 01 Ain au 95 Val-d’Oise : clique sur le bon département, par son nom ou par son numéro.'},
+  {id:'villes',     group:'France', name:'Villes de France',      short:'Villes',        type:'map',  view:'france', desc:'Pose ton épingle au plus près de la ville. Chaque kilomètre compte.'},
+  {id:'pays-carte', group:'Monde',  name:'Pays du monde',         short:'Pays · carte',  type:'map',  view:'world',  desc:'Trouve le pays sur la carte du monde. Zoome pour viser les plus petits.'},
+  {id:'pays-nom',   group:'Monde',  name:'Pays du monde',         short:'Pays · saisie', type:'type', view:'world',  desc:'Un pays s’allume sur la carte. Écris son nom avant tout le monde.'},
+  {id:'cap-eu',     group:'Monde',  name:'Capitales européennes', short:'Capitales UE',  type:'type', view:'europe', desc:'Le pays s’allume sur la carte d’Europe. Tape sa capitale.'},
+  {id:'cap-monde',  group:'Monde',  name:'Capitales du monde',    short:'Capitales',     type:'type', view:'world',  desc:'De Lima à Oulan-Bator : écris la capitale du pays affiché.'}
+];
+const modeById = id => MODES.find(m => m.id === id);
+
+const REGIONS = [
+  ['Île-de-France','Paris'],['Normandie','Rouen'],['Hauts-de-France','Lille'],['Grand Est','Strasbourg'],
+  ['Bretagne','Rennes'],['Pays de la Loire','Nantes'],['Centre-Val de Loire','Orléans'],['Bourgogne-Franche-Comté','Dijon'],
+  ['Nouvelle-Aquitaine','Bordeaux'],['Occitanie','Toulouse'],['Auvergne-Rhône-Alpes','Lyon'],
+  ["Provence-Alpes-Côte d'Azur",'Marseille'],['Corse','Ajaccio']
+].map(([name, cap], i) => ({key:'R' + i, name, cap}));
+
+// [numéro, nom, niveau]
+const DEPTS = [
+  ['01','Ain',2],['02','Aisne',3],['03','Allier',3],['04','Alpes-de-Haute-Provence',3],['05','Hautes-Alpes',3],['06','Alpes-Maritimes',1],
+  ['07','Ardèche',2],['08','Ardennes',2],['09','Ariège',3],['10','Aube',3],['11','Aude',3],['12','Aveyron',2],['13','Bouches-du-Rhône',1],
+  ['14','Calvados',1],['15','Cantal',3],['16','Charente',3],['17','Charente-Maritime',2],['18','Cher',3],['19','Corrèze',3],
+  ['2A','Corse-du-Sud',1],['2B','Haute-Corse',1],['21',"Côte-d'Or",2],['22',"Côtes-d'Armor",2],['23','Creuse',3],['24','Dordogne',2],
+  ['25','Doubs',3],['26','Drôme',2],['27','Eure',3],['28','Eure-et-Loir',3],['29','Finistère',1],['30','Gard',2],['31','Haute-Garonne',1],
+  ['32','Gers',3],['33','Gironde',1],['34','Hérault',1],['35','Ille-et-Vilaine',2],['36','Indre',3],['37','Indre-et-Loire',3],['38','Isère',1],
+  ['39','Jura',2],['40','Landes',2],['41','Loir-et-Cher',3],['42','Loire',3],['43','Haute-Loire',3],['44','Loire-Atlantique',1],['45','Loiret',3],
+  ['46','Lot',3],['47','Lot-et-Garonne',3],['48','Lozère',3],['49','Maine-et-Loire',3],['50','Manche',2],['51','Marne',2],['52','Haute-Marne',3],
+  ['53','Mayenne',3],['54','Meurthe-et-Moselle',3],['55','Meuse',3],['56','Morbihan',2],['57','Moselle',2],['58','Nièvre',3],['59','Nord',1],
+  ['60','Oise',3],['61','Orne',3],['62','Pas-de-Calais',1],['63','Puy-de-Dôme',2],['64','Pyrénées-Atlantiques',2],['65','Hautes-Pyrénées',3],
+  ['66','Pyrénées-Orientales',2],['67','Bas-Rhin',1],['68','Haut-Rhin',2],['69','Rhône',1],['70','Haute-Saône',3],['71','Saône-et-Loire',3],
+  ['72','Sarthe',3],['73','Savoie',2],['74','Haute-Savoie',1],['75','Paris',1],['76','Seine-Maritime',2],['77','Seine-et-Marne',2],
+  ['78','Yvelines',2],['79','Deux-Sèvres',3],['80','Somme',2],['81','Tarn',3],['82','Tarn-et-Garonne',3],['83','Var',1],['84','Vaucluse',2],
+  ['85','Vendée',2],['86','Vienne',3],['87','Haute-Vienne',3],['88','Vosges',2],['89','Yonne',3],['90','Territoire de Belfort',3],
+  ['91','Essonne',2],['92','Hauts-de-Seine',2],['93','Seine-Saint-Denis',2],['94','Val-de-Marne',2],['95',"Val-d'Oise",2]
+].map(([code, name, tier]) => ({code, name, tier}));
+const DEPT_BY_NORM = new Map(DEPTS.map(d => [norm(d.name), d]));
+
+// [nom, longitude, latitude, niveau]
+const CITIES = [
+  ['Paris',2.352,48.857,1],['Marseille',5.370,43.296,1],['Lyon',4.836,45.764,1],['Toulouse',1.444,43.605,1],['Nice',7.262,43.710,1],
+  ['Nantes',-1.554,47.218,1],['Strasbourg',7.752,48.573,1],['Montpellier',3.877,43.611,1],['Bordeaux',-0.579,44.838,1],['Lille',3.057,50.629,1],
+  ['Rennes',-1.678,48.117,1],['Reims',4.032,49.258,1],['Le Havre',0.108,49.494,1],['Brest',-4.486,48.390,1],['Grenoble',5.724,45.188,1],
+  ['Dijon',5.041,47.322,1],['Rouen',1.099,49.443,1],['Ajaccio',8.738,41.919,1],['Clermont-Ferrand',3.087,45.778,1],['Tours',0.689,47.394,1],
+  ['Orléans',1.909,47.902,1],['Metz',6.176,49.119,1],['Perpignan',2.895,42.699,1],['Toulon',5.928,43.124,1],['Caen',-0.370,49.183,1],
+  ['Saint-Étienne',4.387,45.439,2],['Angers',-0.554,47.478,2],['Nîmes',4.360,43.837,2],['Le Mans',0.199,48.006,2],['Limoges',1.261,45.834,2],
+  ['Besançon',6.024,47.238,2],['Amiens',2.296,49.894,2],['Pau',-0.370,43.295,2],['Avignon',4.806,43.949,2],['Mulhouse',7.336,47.750,2],
+  ['Poitiers',0.340,46.580,2],['La Rochelle',-1.151,46.160,2],['Bayonne',-1.475,43.493,2],['Nancy',6.184,48.692,2],['Annecy',6.129,45.899,2],
+  ['Calais',1.858,50.951,2],['Bastia',9.450,42.697,2],['Saint-Malo',-2.026,48.649,2],['Biarritz',-1.559,43.483,2],['Cannes',7.017,43.552,2],
+  ['Lourdes',-0.046,43.095,2],['Chamonix',6.869,45.924,2],['Troyes',4.074,48.297,2],['Carcassonne',2.353,43.213,2],['Valence',4.892,44.933,2],
+  ['Dunkerque',2.377,51.034,2],
+  ['Cherbourg',-1.622,49.639,3],['Lorient',-3.370,47.748,3],['Vannes',-2.760,47.658,3],['Quimper',-4.102,47.996,3],['Saint-Brieuc',-2.765,48.514,3],
+  ['Laval',-0.770,48.073,3],['Chartres',1.489,48.446,3],['Bourges',2.398,47.081,3],['Châteauroux',1.691,46.811,3],['Vichy',3.426,46.128,3],
+  ['Aurillac',2.445,44.926,3],['Rodez',2.575,44.350,3],['Albi',2.148,43.929,3],['Montauban',1.355,44.018,3],['Agen',0.617,44.203,3],
+  ['Périgueux',0.721,45.184,3],['Angoulême',0.156,45.649,3],['Niort',-0.459,46.323,3],['Brive-la-Gaillarde',1.533,45.159,3],['Tarbes',0.078,43.233,3],
+  ['Béziers',3.215,43.344,3],['Arles',4.631,43.677,3],['Gap',6.079,44.559,3],['Digne-les-Bains',6.236,44.093,3],['Chambéry',5.917,45.566,3],
+  ['Bourg-en-Bresse',5.226,46.205,3],['Mâcon',4.835,46.307,3],['Nevers',3.159,46.990,3],['Auxerre',3.570,47.798,3],['Épinal',6.450,48.172,3],
+  ['Colmar',7.358,48.079,3],['Charleville-Mézières',4.720,49.773,3],['Beauvais',2.080,49.430,3],['Arras',2.781,50.291,3],['Évreux',1.151,49.024,3],
+  ['Alençon',0.091,48.432,3],['Belfort',6.863,47.640,3],['Mende',3.500,44.518,3],['Foix',1.606,42.965,3],['Le Puy-en-Velay',3.885,45.043,3],
+  ['Saint-Nazaire',-2.214,47.273,3],['Boulogne-sur-Mer',1.614,50.726,3]
+].map(([name, lon, lat, tier]) => ({name, lon, lat, tier, region:null}));
+
+const CONT = {EU:'Europe', AS:'Asie', AF:'Afrique', AM:'Amériques', OC:'Océanie'};
+// [code ISO numérique, pays, capitale, continent, niveau, autres noms du pays, autres noms de la capitale]
+const C_RAW = [
+  ['250','France','Paris','EU',1],['276','Allemagne','Berlin','EU',1],['724','Espagne','Madrid','EU',1],['380','Italie','Rome','EU',1,0,['Roma']],
+  ['826','Royaume-Uni','Londres','EU',1,['Angleterre','Grande-Bretagne','UK'],['London']],['620','Portugal','Lisbonne','EU',1,0,['Lisboa']],
+  ['056','Belgique','Bruxelles','EU',1],['528','Pays-Bas','Amsterdam','EU',1,['Hollande']],['756','Suisse','Berne','EU',1,0,['Bern']],
+  ['300','Grèce','Athènes','EU',1],['616','Pologne','Varsovie','EU',1],['643','Russie','Moscou','EU',1],['040','Autriche','Vienne','EU',1],
+  ['372','Irlande','Dublin','EU',1],['752','Suède','Stockholm','EU',1],['578','Norvège','Oslo','EU',1],
+  ['208','Danemark','Copenhague','EU',2],['246','Finlande','Helsinki','EU',2],['804','Ukraine','Kiev','EU',2,0,['Kyiv']],
+  ['203','Tchéquie','Prague','EU',2,['République tchèque']],['348','Hongrie','Budapest','EU',2],['642','Roumanie','Bucarest','EU',2],
+  ['352','Islande','Reykjavik','EU',2],['191','Croatie','Zagreb','EU',2],['100','Bulgarie','Sofia','EU',2],['688','Serbie','Belgrade','EU',2],
+  ['442','Luxembourg','Luxembourg','EU',2],
+  ['703','Slovaquie','Bratislava','EU',3],['705','Slovénie','Ljubljana','EU',3],['070','Bosnie-Herzégovine','Sarajevo','EU',3,['Bosnie']],
+  ['008','Albanie','Tirana','EU',3],['499','Monténégro','Podgorica','EU',3],['807','Macédoine du Nord','Skopje','EU',3,['Macédoine']],
+  ['n:Kosovo','Kosovo','Pristina','EU',3,0,['Prishtina']],['440','Lituanie','Vilnius','EU',3],['428','Lettonie','Riga','EU',3],
+  ['233','Estonie','Tallinn','EU',3],['112','Biélorussie','Minsk','EU',3,['Bélarus']],['498','Moldavie','Chisinau','EU',3,0,['Kichinev']],
+  ['470','Malte','La Valette','EU',3,0,['Valletta']],['196','Chypre','Nicosie','EU',3],['020','Andorre','Andorre-la-Vieille','EU',3,0,['Andorra la Vella']],
+  ['438','Liechtenstein','Vaduz','EU',3],
+
+  ['156','Chine','Pékin','AS',1,0,['Beijing']],['356','Inde','New Delhi','AS',1,0,['Delhi']],['392','Japon','Tokyo','AS',1],
+  ['410','Corée du Sud','Séoul','AS',1,['Corée']],['764','Thaïlande','Bangkok','AS',1],['704','Vietnam','Hanoï','AS',1,['Viêt Nam']],
+  ['360','Indonésie','Jakarta','AS',1],['792','Turquie','Ankara','AS',1],['682','Arabie saoudite','Riyad','AS',1,0,['Riyadh']],
+  ['364','Iran','Téhéran','AS',2],['586','Pakistan','Islamabad','AS',2],['368','Irak','Bagdad','AS',2],['376','Israël','Jérusalem','AS',2],
+  ['398','Kazakhstan','Astana','AS',2,0,['Nour-Soultan']],['496','Mongolie','Oulan-Bator','AS',2,0,['Ulaanbaatar']],
+  ['608','Philippines','Manille','AS',2,0,['Manila']],['458','Malaisie','Kuala Lumpur','AS',2],['524','Népal','Katmandou','AS',2,0,['Kathmandu']],
+  ['004','Afghanistan','Kaboul','AS',2,0,['Kabul']],['408','Corée du Nord','Pyongyang','AS',2],
+  ['784','Émirats arabes unis','Abou Dabi','AS',2,['Émirats','EAU'],['Abu Dhabi','Abou Dhabi']],['050','Bangladesh','Dacca','AS',2,0,['Dhaka']],
+  ['144','Sri Lanka','Colombo','AS',2,0,['Sri Jayawardenepura Kotte','Kotte']],['760','Syrie','Damas','AS',2],['422','Liban','Beyrouth','AS',2],
+  ['702','Singapour','Singapour','AS',2],
+  ['104','Birmanie','Naypyidaw','AS',3,['Myanmar'],['Naypyitaw','Nay Pyi Taw']],['116','Cambodge','Phnom Penh','AS',3],['418','Laos','Vientiane','AS',3],
+  ['400','Jordanie','Amman','AS',3],['414','Koweït','Koweït','AS',3,0,['Kuwait']],['634','Qatar','Doha','AS',3],['512','Oman','Mascate','AS',3,0,['Muscat']],
+  ['887','Yémen','Sanaa','AS',3],['048','Bahreïn','Manama','AS',3],['268','Géorgie','Tbilissi','AS',3,0,['Tbilisi']],
+  ['051','Arménie','Erevan','AS',3,0,['Yerevan']],['031','Azerbaïdjan','Bakou','AS',3,0,['Baku']],['860','Ouzbékistan','Tachkent','AS',3,0,['Tashkent']],
+  ['795','Turkménistan','Achgabat','AS',3,0,['Ashgabat']],['762','Tadjikistan','Douchanbé','AS',3,0,['Dushanbe']],
+  ['417','Kirghizistan','Bichkek','AS',3,0,['Bishkek']],['064','Bhoutan','Thimphou','AS',3,0,['Thimphu']],
+  ['096','Brunei','Bandar Seri Begawan','AS',3],['626','Timor oriental','Dili','AS',3,['Timor-Leste']],
+
+  ['818','Égypte','Le Caire','AF',1,0,['Cairo']],['504','Maroc','Rabat','AF',1],['012','Algérie','Alger','AF',1],['788','Tunisie','Tunis','AF',1],
+  ['710','Afrique du Sud','Pretoria','AF',1,0,['Tshwane']],['566','Nigeria','Abuja','AF',1,['Nigéria']],['404','Kenya','Nairobi','AF',1],
+  ['450','Madagascar','Antananarivo','AF',1,0,['Tananarive']],['686','Sénégal','Dakar','AF',1],
+  ['180','RD Congo','Kinshasa','AF',2,['RDC','République démocratique du Congo','Congo-Kinshasa']],['231','Éthiopie','Addis-Abeba','AF',2,0,['Addis Abeba']],
+  ['384',"Côte d'Ivoire",'Yamoussoukro','AF',2],['120','Cameroun','Yaoundé','AF',2],['434','Libye','Tripoli','AF',2],['729','Soudan','Khartoum','AF',2],
+  ['466','Mali','Bamako','AF',2],['288','Ghana','Accra','AF',2],['024','Angola','Luanda','AF',2],['834','Tanzanie','Dodoma','AF',2],
+  ['508','Mozambique','Maputo','AF',2],
+  ['706','Somalie','Mogadiscio','AF',3,0,['Mogadishu']],['562','Niger','Niamey','AF',3],['148','Tchad',"N'Djaména",'AF',3,0,['Ndjamena']],
+  ['478','Mauritanie','Nouakchott','AF',3],['854','Burkina Faso','Ouagadougou','AF',3],['204','Bénin','Porto-Novo','AF',3],['768','Togo','Lomé','AF',3],
+  ['324','Guinée','Conakry','AF',3],['624','Guinée-Bissau','Bissau','AF',3],['694','Sierra Leone','Freetown','AF',3],['430','Liberia','Monrovia','AF',3,['Libéria']],
+  ['270','Gambie','Banjul','AF',3],['178','Congo','Brazzaville','AF',3,['République du Congo','Congo-Brazzaville']],['266','Gabon','Libreville','AF',3],
+  ['226','Guinée équatoriale','Malabo','AF',3],['140','Centrafrique','Bangui','AF',3,['République centrafricaine']],
+  ['728','Soudan du Sud','Djouba','AF',3,0,['Juba']],['232','Érythrée','Asmara','AF',3],['262','Djibouti','Djibouti','AF',3],
+  ['800','Ouganda','Kampala','AF',3],['646','Rwanda','Kigali','AF',3],['108','Burundi','Gitega','AF',3],['454','Malawi','Lilongwe','AF',3],
+  ['894','Zambie','Lusaka','AF',3],['716','Zimbabwe','Harare','AF',3],['516','Namibie','Windhoek','AF',3],['072','Botswana','Gaborone','AF',3],
+  ['426','Lesotho','Maseru','AF',3],['748','Eswatini','Mbabane','AF',3,['Swaziland']],['480','Maurice','Port-Louis','AF',3,['Île Maurice']],
+  ['132','Cap-Vert','Praia','AF',3],
+
+  ['840','États-Unis','Washington','AM',1,['USA','Amérique'],['Washington DC']],['124','Canada','Ottawa','AM',1],['484','Mexique','Mexico','AM',1],
+  ['076','Brésil','Brasília','AM',1],['032','Argentine','Buenos Aires','AM',1],['152','Chili','Santiago','AM',1,0,['Santiago du Chili']],
+  ['604','Pérou','Lima','AM',1],['170','Colombie','Bogota','AM',1],['192','Cuba','La Havane','AM',1,0,['Havana']],
+  ['862','Venezuela','Caracas','AM',2,['Vénézuela']],['068','Bolivie','Sucre','AM',2,0,['La Paz']],['218','Équateur','Quito','AM',2],
+  ['858','Uruguay','Montevideo','AM',2],['600','Paraguay','Asuncion','AM',2],['332','Haïti','Port-au-Prince','AM',2],['388','Jamaïque','Kingston','AM',2],
+  ['591','Panama','Panama','AM',2],['188','Costa Rica','San José','AM',2],
+  ['320','Guatemala','Guatemala','AM',3,0,['Guatemala City']],['340','Honduras','Tegucigalpa','AM',3],['222','Salvador','San Salvador','AM',3,['El Salvador']],
+  ['558','Nicaragua','Managua','AM',3],['084','Belize','Belmopan','AM',3],['214','République dominicaine','Saint-Domingue','AM',3,0,['Santo Domingo']],
+  ['044','Bahamas','Nassau','AM',3],['780','Trinité-et-Tobago',"Port-d'Espagne",'AM',3,0,['Port of Spain']],['328','Guyana','Georgetown','AM',3],
+  ['740','Suriname','Paramaribo','AM',3],
+
+  ['036','Australie','Canberra','OC',1],['554','Nouvelle-Zélande','Wellington','OC',1],['598','Papouasie-Nouvelle-Guinée','Port Moresby','OC',2,['Papouasie']],
+  ['242','Fidji','Suva','OC',3],['090','Îles Salomon','Honiara','OC',3,['Salomon']],['548','Vanuatu','Port-Vila','OC',3]
+];
+const COUNTRIES = C_RAW.map(([key, name, cap, cont, tier, nAl, cAl]) => ({key, name, cap, cont, tier, nameAl:nAl || [], capAl:cAl || [], f:null}));
+const countryByKey = new Map(COUNTRIES.map(c => [c.key, c]));
+const CAPITAL_DOTS = [[2.35,48.86],[139.69,35.69],[-47.88,-15.79],[31.24,30.04],[149.13,-35.28],[-75.70,45.42],[77.21,28.61],[-58.38,-34.60],[-77.04,-12.05],[37.62,55.75],[28.05,-26.2],[100.5,13.75]];
+
+/* =====================================================================
+   Chargement des cartes
+   ===================================================================== */
+const URLS = {
+  land:  'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/land-110m.json/+esm',
+  world: 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json/+esm',
+  fr:    'https://cdn.jsdelivr.net/npm/@highcharts/map-collection@2.3.0/countries/fr/fr-all.topo.json/+esm',
+  dep:   'https://cdn.jsdelivr.net/npm/@highcharts/map-collection@2.3.0/countries/fr/fr-all-all.topo.json/+esm'
+};
+const GEO = {land:null, world:[], byKey:new Map(), regions:[], frFC:null, frOutline:null, ready:false, error:null};
+
+function rewind(f){
+  const g = f && f.geometry; if (!g) return f;
+  const fix = poly => d3.geoArea({type:'Polygon', coordinates:poly}) > 2 * Math.PI ? poly.map(r => r.slice().reverse()) : poly;
+  if (g.type === 'Polygon') g.coordinates = fix(g.coordinates);
+  else if (g.type === 'MultiPolygon') g.coordinates = g.coordinates.map(fix);
+  return f;
+}
+const featKey = f => (f.id != null && f.id !== '' && !isNaN(+f.id)) ? String(+f.id).padStart(3, '0') : 'n:' + (f.properties && f.properties.name);
+
+const landP = import(URLS.land).then(m => { const t = m.default; GEO.land = topojson.feature(t, t.objects.land); return GEO.land; });
+const geoP = Promise.all([import(URLS.world), import(URLS.fr)]).then(([wm, fm]) => {
+  const wt = wm.default, ft = fm.default;
+  GEO.world = topojson.feature(wt, wt.objects.countries).features.filter(f => featKey(f) !== '010');
+  GEO.world.forEach(f => { f.k = featKey(f); GEO.byKey.set(f.k, f); });
+  COUNTRIES.forEach(c => { c.f = GEO.byKey.get(c.key) || null; });
+
+  const obj = ft.objects[Object.keys(ft.objects)[0]];
+  const feats = topojson.feature(ft, obj).features;
+  const wanted = new Set(REGIONS.map(r => norm(r.name)));
+  REGIONS.forEach(r => {
+    const f = feats.find(x => x.properties && norm(x.properties.name) === norm(r.name));
+    if (f){ r.f = rewind(f); f.k = r.key; }
+  });
+  GEO.regions = REGIONS.filter(r => r.f);
+  const geoms = obj.geometries.filter(g => g.properties && wanted.has(norm(g.properties.name)));
+  GEO.frOutline = rewind({type:'Feature', geometry:topojson.merge(ft, geoms)});
+  GEO.frFC = {type:'FeatureCollection', features:GEO.regions.map(r => r.f)};
+  CITIES.forEach(c => { const r = GEO.regions.find(r => d3.geoContains(r.f, [c.lon, c.lat])); c.region = r ? r.name : null; });
+  GEO.ready = true;
+  return GEO;
+}).catch(e => { GEO.error = e; throw e; });
+geoP.catch(() => {});
+landP.catch(() => {});
+
+let depP = null;
+function loadDeps(){
+  if (depP) return depP;
+  depP = geoP.then(() => import(URLS.dep)).then(m => {
+    const t = m.default, obj = t.objects[Object.keys(t.objects)[0]];
+    const geoms = obj.geometries.filter(g => (g.type === 'Polygon' || g.type === 'MultiPolygon') && g.properties);
+    const feats = topojson.feature(t, {type:'GeometryCollection', geometries:geoms}).features.map(rewind);
+    const metro = [], metroGeoms = [];
+    feats.forEach((f, i) => {
+      const c = d3.geoCentroid(f);
+      if (c[0] < -6 || c[0] > 10 || c[1] < 41 || c[1] > 52) return;
+      const rawName = String(f.properties.name || '').replace(/č/g, 'è').replace(/Č/g, 'È');
+      const info = DEPT_BY_NORM.get(norm(rawName));
+      const reg = REGIONS.find(r => norm(r.name) === norm(f.properties.region || ''));
+      f.k = 'D' + i;
+      metro.push({key:f.k, f, name:info ? info.name : rawName, code:info ? info.code : '', tier:info ? info.tier : 3, region:reg ? reg.name : (f.properties.region || '')});
+      metroGeoms.push(geoms[i]);
+    });
+    GEO.deps = metro;
+    return metro;
+  });
+  depP.catch(() => { depP = null; });
+  return depP;
+}
+
+function nearestOnFeature(f, p){
+  let best = Infinity, bp = null;
+  const g = f.geometry;
+  const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+  for (const poly of polys) for (const ring of poly) for (const c of ring){
+    const d = d3.geoDistance(p, c);
+    if (d < best){ best = d; bp = c; }
+  }
+  return {d:best * R_EARTH, pt:bp};
+}
+
+/* =====================================================================
+   Emblèmes de rang (SVG)
+   ===================================================================== */
+let EID = 0;
+function starPts(n, R, r, cx = 50, cy = 50, rot = -90){
+  const pts = [];
+  for (let i = 0; i < n * 2; i++){
+    const a = (rot * Math.PI / 180) + i * Math.PI / n, rr = i % 2 ? r : R;
+    pts.push((cx + rr * Math.cos(a)).toFixed(1) + ',' + (cy + rr * Math.sin(a)).toFixed(1));
+  }
+  return pts.join(' ');
+}
+/* Emblèmes de compétition : métal biseauté, ailes, gemme, couronne selon le rang.
+   m = 4 teintes de métal (clair, moyen, sombre, reflet), g = gemme. */
+const TIERS = [
+  {m:['#ffd9b5','#d0864c','#6b3212','#f0b07c'], g:['#ffe2c7','#ff8a3d'], shape:'shield', wings:0, icon:'chev'},
+  {m:['#ffffff','#c9d2de','#6a768a','#eef2f8'], g:['#ffffff','#9fc4ff'], shape:'shield', wings:1, icon:'chev'},
+  {m:['#fff4b0','#f2b928','#8a5806','#ffe079'], g:['#fffbe0','#ffcf3d'], shape:'shield', wings:2, icon:'star', laurel:true},
+  {m:['#e8fffb','#63d9c9','#14625d','#b0f5ec'], g:['#ffffff','#5ff0ff'], shape:'hex', wings:2, icon:'gem'},
+  {m:['#eaf4ff','#6eaaff','#173a99','#b3d4ff'], g:['#ffffff','#7cc0ff'], shape:'gem', wings:3, icon:'facets'},
+  {m:['#f3e6ff','#aa78ff','#43169c','#d6bbff'], g:['#ffffff','#c79bff'], shape:'crest', wings:3, icon:'compass', crown:1},
+  {m:['#ffe3ea','#ff4f80','#7d0c2e','#ffa0b8'], g:['#ffffff','#ff7aa0'], shape:'crest', wings:4, icon:'compass', crown:2},
+  {m:['#fff8c8','#ffb21f','#a43400','#ffe485'], g:['#ffffff','#ffd86b'], shape:'crest', wings:4, icon:'compass', crown:3, rays:true, prism:true}
+];
+const SHAPES = {
+  shield:'M50 10 L80 21 V47 C80 68 66 82 50 91 C34 82 20 68 20 47 V21 Z',
+  hex:'M50 8 L82 26 V64 L50 92 L18 64 V26 Z',
+  gem:'M33 13 H67 L87 40 L50 93 L13 40 Z'
+};
+function emblem(i, div = 0){
+  const T = TIERS[i] || TIERS[0], id = 'em' + (EID++);
+  const [m0, m1, m2, m3] = T.m;
+  const shape = T.shape === 'crest' ? null : SHAPES[T.shape];
+  const crestPts = starPts(12, 45, 37, 50, 52, -90);
+  const outer = shape ? `<path d="${shape}"` : `<polygon points="${crestPts}"`;
+  const inner = (fill, extra = '') => shape
+    ? `<path d="${shape}" transform="translate(50 52) scale(.76) translate(-50 -52)" fill="${fill}" ${extra}/>`
+    : `<polygon points="${crestPts}" transform="translate(50 52) scale(.76) translate(-50 -52)" fill="${fill}" ${extra}/>`;
+  const defs = `<defs>
+    <linearGradient id="${id}m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${m0}"/><stop offset=".38" stop-color="${m1}"/><stop offset=".72" stop-color="${m2}"/><stop offset="1" stop-color="${m3}"/></linearGradient>
+    <linearGradient id="${id}d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${m2}"/><stop offset="1" stop-color="#070b18"/></linearGradient>
+    <radialGradient id="${id}g" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="${T.g[0]}"/><stop offset=".55" stop-color="${T.g[1]}"/><stop offset="1" stop-color="${m2}"/></radialGradient>
+    <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    ${T.prism ? `<linearGradient id="${id}p" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6b0"/><stop offset=".3" stop-color="#ff9d2e"/><stop offset=".55" stop-color="#ff4f8a"/><stop offset=".8" stop-color="#7d6bff"/><stop offset="1" stop-color="#4fd8ff"/></linearGradient>` : ''}
+  </defs>`;
+  // rayons (Légende)
+  let rays = '';
+  if (T.rays){
+    let r = '';
+    for (let k = 0; k < 16; k++){
+      const a = k * Math.PI / 8, a1 = a - .07, a2 = a + .07;
+      r += `<path d="M${(50 + 26 * Math.cos(a1)).toFixed(1)} ${(52 + 26 * Math.sin(a1)).toFixed(1)} L${(50 + 64 * Math.cos(a)).toFixed(1)} ${(52 + 64 * Math.sin(a)).toFixed(1)} L${(50 + 26 * Math.cos(a2)).toFixed(1)} ${(52 + 26 * Math.sin(a2)).toFixed(1)} Z"/>`;
+    }
+    rays = `<g class="e-rays" fill="url(#${id}p)" opacity=".75">${r}</g>`;
+  }
+  // ailes
+  let wings = '';
+  if (T.wings){
+    const n = T.wings + 1;
+    let f = '';
+    for (let k = 0; k < n; k++){
+      const ang = (-48 + k * (70 / Math.max(1, n - 1))) * Math.PI / 180;
+      const len = 30 + T.wings * 4 - k * 3.5;
+      const ax = 70, ay = 44 + k * 4;
+      const tx = ax + len * Math.cos(ang), ty = ay + len * Math.sin(ang);
+      const bx = ax + (len * .55) * Math.cos(ang + .32), by = ay + (len * .55) * Math.sin(ang + .32);
+      f += `<path d="M${ax} ${ay} L${tx.toFixed(1)} ${ty.toFixed(1)} L${bx.toFixed(1)} ${by.toFixed(1)} Z"/>`;
+    }
+    const wing = `<g fill="url(#${id}m)" stroke="${m2}" stroke-width="1.2" stroke-linejoin="round">${f}</g>`;
+    wings = `<g class="e-wings">${wing}<g transform="translate(100 0) scale(-1 1)">${wing}</g></g>`;
+  }
+  // lauriers (Or)
+  let laurel = '';
+  if (T.laurel){
+    for (let side = -1; side <= 1; side += 2) for (let k = 0; k < 5; k++){
+      const a = (115 + k * 17) * Math.PI / 180;
+      const x = 50 - side * 42 * Math.cos(a), y = 56 + 38 * Math.sin(a);
+      laurel += `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="6" ry="2.8" transform="rotate(${side * (60 - k * 18)} ${x.toFixed(1)} ${y.toFixed(1)})" fill="url(#${id}m)" stroke="${m2}" stroke-width=".8"/>`;
+    }
+  }
+  // icône centrale
+  const ic = {
+    chev:`<path d="M38 50 L50 60 L62 50" fill="none" stroke="url(#${id}g)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M38 40 L50 50 L62 40" fill="none" stroke="url(#${id}g)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="${i >= 1 ? 1 : .35}"/>`,
+    star:`<polygon points="${starPts(5, 15, 6.5, 50, 53)}" fill="url(#${id}g)" stroke="#fff" stroke-opacity=".6" stroke-width="1"/>`,
+    gem:`<path d="M50 36 L63 52 L50 68 L37 52 Z" fill="url(#${id}g)" stroke="#fff" stroke-opacity=".7" stroke-width="1.2"/><path d="M37 52 H63 M50 36 V68" stroke="#fff" stroke-opacity=".45" stroke-width="1"/>`,
+    facets:`<path d="M40 40 H60 L68 50 L50 70 L32 50 Z" fill="url(#${id}g)" stroke="#fff" stroke-opacity=".7" stroke-width="1.2" stroke-linejoin="round"/><path d="M32 50 H68 M40 40 L45 50 L50 40 L55 50 L60 40 M45 50 L50 70 L55 50" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1"/>`,
+    compass:`<circle cx="50" cy="52" r="17" fill="#070b18" fill-opacity=".55" stroke="url(#${id}g)" stroke-width="1.5"/><polygon points="${starPts(4, 15, 4, 50, 52)}" fill="url(#${id}g)"/><polygon points="${starPts(4, 9, 2.5, 50, 52, -45)}" fill="#fff" fill-opacity=".75"/>`
+  }[T.icon];
+  // couronne
+  let crown = '';
+  if (T.crown){
+    const h = 8 + T.crown * 3;
+    const top = 12 - h;
+    crown = `<g class="e-crown"><path d="M32 14 L35 ${top + 4} L42 ${top + 9} L50 ${top} L58 ${top + 9} L65 ${top + 4} L68 14 Z" fill="url(#${id}m)" stroke="${m2}" stroke-width="1.3" stroke-linejoin="round"/>
+      <circle cx="50" cy="${top + 1}" r="2.6" fill="url(#${id}g)" stroke="#fff" stroke-width=".6"/>${T.crown >= 2 ? `<circle cx="35" cy="${top + 4}" r="1.9" fill="url(#${id}g)"/><circle cx="65" cy="${top + 4}" r="1.9" fill="url(#${id}g)"/>` : ''}</g>`;
+  }
+  // divisions (III = 1 losange, I = 3)
+  let pips = '';
+  if (div){
+    const filled = 4 - div;
+    for (let k = 0; k < 3; k++){
+      const x = 38 + k * 12;
+      pips += `<path d="M${x} 101 L${x + 4.5} 105.5 L${x} 110 L${x - 4.5} 105.5 Z" fill="${k < filled ? `url(#${id}g)` : '#0b1224'}" stroke="${m1}" stroke-width="1.2"/>`;
+    }
+  }
+  const rim = T.prism ? `url(#${id}p)` : m3;
+  return `<svg class="emblem t${i}" viewBox="-14 -16 128 130" aria-hidden="true">${defs}${rays}${wings}${laurel}
+    ${outer} fill="url(#${id}m)" stroke="${rim}" stroke-width="${T.prism ? 3 : 2}" stroke-linejoin="round"/>
+    ${inner(`url(#${id}d)`, `stroke="${m3}" stroke-opacity=".8" stroke-width="2"`)}
+    ${ic}${crown}
+    ${outer} fill="url(#${id}s)" pointer-events="none"/>${pips}</svg>`;
+}
+function rankFull(score){
+  const i = rankIdx(score), r = RANKS[i], nx = RANKS[i + 1];
+  let div = 0;
+  if (i <= 4 && nx){ const f = (score - r.min) / (nx.min - r.min); div = f < 1 / 3 ? 3 : f < 2 / 3 ? 2 : 1; }
+  return {i, div, name:r.n + (div ? ' ' + ['', 'I', 'II', 'III'][div] : '')};
+}
+const SEASON = 'Saison 1';
+function titleHTML(ri){ return ri >= 5 ? `<span class="ptitle t${ri}">${RANKS[ri].n} · ${SEASON}</span>` : ''; }
+const REWARDS = ['Emblème Bronze', 'Cadre d’avatar argenté', 'Cadre doré et lauriers', 'Cadre platine', 'Cadre diamant scintillant',
+  `Titre « Master · ${SEASON} » bleu`, `Titre « Grand Master · ${SEASON} » rose`, `Titre « Légende · ${SEASON} » rouge et cadre légendaire`];
+
+/* =====================================================================
+   Son
+   ===================================================================== */
+let AC = null, SOUND = store.get(LS.sound, true);
+function sfx(kind){
+  if (!SOUND) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    const now = AC.currentTime;
+    const tone = (f, t, d, type = 'sine', g = .07, f2) => {
+      const o = AC.createOscillator(), v = AC.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, now + t);
+      if (f2) o.frequency.exponentialRampToValueAtTime(f2, now + t + d);
+      v.gain.setValueAtTime(.0001, now + t); v.gain.exponentialRampToValueAtTime(g, now + t + .01); v.gain.exponentialRampToValueAtTime(.0001, now + t + d);
+      o.connect(v).connect(AC.destination); o.start(now + t); o.stop(now + t + d + .03);
+    };
+    if (kind === 'good'){ tone(660, 0, .12, 'triangle'); tone(990, .08, .25, 'triangle'); }
+    else if (kind === 'part'){ tone(520, 0, .18, 'triangle'); }
+    else if (kind === 'bad'){ tone(220, 0, .28, 'sawtooth', .04, 140); }
+    else if (kind === 'tick'){ tone(1200, 0, .05, 'square', .025); }
+    else if (kind === 'start'){ tone(440, 0, .1, 'triangle'); tone(660, .1, .1, 'triangle'); tone(880, .2, .18, 'triangle'); }
+    else if (kind === 'combo'){ tone(523, 0, .09, 'square', .035); tone(784, .07, .09, 'square', .035); tone(1046, .14, .16, 'square', .04); }
+    else if (kind === 'rank'){ [523, 659, 784, 1047].forEach((f, k) => tone(f, k * .11, .35, 'triangle', .06)); }
+  } catch(e){}
+}
+function renderSoundBtn(){
+  const b = $('#soundBtn');
+  b.setAttribute('aria-label', SOUND ? 'Couper le son' : 'Activer le son');
+  b.innerHTML = SOUND
+    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';
+}
+
+/* =====================================================================
+   Profil, scores locaux et classement partagé
+   ===================================================================== */
+const COLORS = ['#ff5b3a','#f6c453','#2fd08a','#38bdf8','#a78bfa','#f472b6','#fb923c','#e9ddc3'];
+const getProfile = () => store.get(LS.profile, null);
+const DB = {db:null, uid:null, canWrite:null, status:'off', players:new Map()};
+
+function sanitizePlayer(v){
+  if (!v || typeof v !== 'object') return null;
+  const pseudo = String(v.pseudo || '').slice(0, 16).trim();
+  if (!pseudo) return null;
+  const color = COLORS.includes(v.color) ? v.color : COLORS[0];
+  const best = {};
+  if (v.best && typeof v.best === 'object') for (const m of MODES){
+    const b = v.best[m.id];
+    if (b && typeof b.score === 'number' && isFinite(b.score)) best[m.id] = {score:clamp(Math.round(b.score), 0, 30000), diff:DIFF[b.diff] ? b.diff : 'moyen', at:+b.at || 0};
+  }
+  return {pseudo, color, best, games:+v.games || 0};
+}
+function localPlayers(){
+  const raw = store.get(LS.players, {}), out = new Map();
+  for (const [id, v] of Object.entries(raw)){ const p = sanitizePlayer(v); if (p) out.set(id, p); }
+  return out;
+}
+function myBest(){
+  const p = getProfile(); if (!p) return {};
+  const fromLocal = (localPlayers().get(p.id) || {}).best || {};
+  const fromDB = DB.uid ? ((DB.players.get(DB.uid) || {}).best || {}) : {};
+  const out = {...fromLocal};
+  for (const [k, v] of Object.entries(fromDB)) if (!out[k] || v.score > out[k].score) out[k] = v;
+  return out;
+}
+function myTopRank(){
+  const b = Object.values(myBest());
+  return b.length ? Math.max(...b.map(x => rankIdx(x.score))) : -1;
+}
+
+/* ---------- Direct : qui est en ligne ---------- */
+const LIVE = {room:null, peers:[], ok:false};
+async function initRoom(){
+  try {
+    const c = window.claude;
+    if (!c || typeof c.use !== 'function') return;
+    const room = await c.use('room');
+    if (!room) return;
+    LIVE.room = room;
+    room.onPeers(ch => { LIVE.peers = ch.peers; LIVE.ok = true; renderLive(); },
+      () => { LIVE.ok = false; LIVE.room = null; LIVE.peers = []; renderLive(); });
+    pushPresence();
+  } catch(e){}
+}
+function pushPresence(extra){
+  if (!LIVE.room) return;
+  const p = getProfile();
+  const base = {p:p ? p.pseudo : '', c:p ? p.color : null, s:VIEW, m:null, d:null, q:null, n:null, sc:null, r:null};
+  if (G && VIEW === 'game'){ base.m = G.mode.id; base.d = G.dk; base.q = Math.min(G.i + 1, G.qs.length); base.n = G.qs.length; base.sc = G.raw; }
+  LIVE.room.presence(Object.assign(base, extra || {})).catch(() => {});
+}
+function peerInfo(pe){
+  const pr = pe.presence || {};
+  const num = (v, a, b) => typeof v === 'number' && isFinite(v) ? clamp(Math.round(v), a, b) : null;
+  const pseudo = typeof pr.p === 'string' ? pr.p.slice(0, 16).trim() : '';
+  return {key:pe.by || pe.peer, by:pe.by, me:pe.isMe, pseudo:pseudo || 'Invité', anon:!pseudo,
+    color:COLORS.includes(pr.c) ? pr.c : '#5c6b85', s:['home', 'game', 'end', 'board'].includes(pr.s) ? pr.s : 'home',
+    mode:modeById(pr.m), diff:DIFF[pr.d] ? DIFF[pr.d] : null, q:num(pr.q, 1, 20), n:num(pr.n, 1, 20), sc:num(pr.sc, 0, 40000), r:num(pr.r, 0, 7), t:pe.updatedAt || 0};
+}
+function onlineList(){
+  const by = new Map();
+  for (const pe of LIVE.peers){
+    if (pe.kind !== 'viewer') continue;
+    const x = peerInfo(pe);
+    const prev = by.get(x.key);
+    if (!prev || (x.s === 'game' && prev.s !== 'game') || (x.t > prev.t && !(prev.s === 'game' && x.s !== 'game'))) by.set(x.key, x);
+  }
+  return [...by.values()].sort((a, b) => (b.s === 'game') - (a.s === 'game') || b.me - a.me || a.pseudo.localeCompare(b.pseudo));
+}
+function peerStatus(x){
+  if (x.s === 'game' && x.mode) return `Joue · ${x.mode.short}${x.diff ? ' · ' + x.diff.label : ''}${x.q ? ' · Q' + x.q + '/' + (x.n || NQ) : ''} · ${fmt(x.sc || 0)} pts`;
+  if (x.s === 'end' && x.mode) return `Vient de finir ${x.mode.short}${x.r != null ? ' · ' + RANKS[x.r].n : ''} · ${fmt(x.sc || 0)} pts`;
+  if (x.s === 'board') return 'Regarde le classement';
+  return 'Choisit un mode';
+}
+function renderLive(){
+  const slot = $('#liveSlot');
+  const list = LIVE.ok ? onlineList() : [];
+  slot.innerHTML = list.length ? `<button class="btn live-chip" data-act="board" aria-label="${list.length} joueur${list.length > 1 ? 's' : ''} en ligne"><i class="dot-live"></i>${list.length}<span class="hide-s">&nbsp;en ligne</span></button>` : '';
+  const panel = $('#onlinePanel');
+  if (panel) panel.innerHTML = onlineHTML(list);
+  const co = $('#chatOn'); if (co) co.textContent = list.length ? list.length + ' en ligne' : '';
+  if (VIEW === 'board') document.querySelectorAll('[data-online]').forEach(el => { el.hidden = !list.some(x => x.by && x.by === el.dataset.online); });
+}
+function onlineHTML(list){
+  if (!LIVE.room) return '<div class="online-h"><h3>En ligne maintenant</h3></div><p class="muted small" style="margin:0">Le suivi des joueurs en ligne n’est pas encore activé sur ce site.</p>';
+  return `<div class="online-h"><i class="dot-live"></i><h3>En ligne maintenant · ${list.length}</h3></div>
+    <div class="online-list">${list.map(x => `<div class="peer ${x.s === 'game' ? 'playing' : ''}">
+      ${avatarHTML(x.pseudo, x.color, x.by ? bestRankFor(x.by) : (x.me ? myTopRank() : -1))}
+      <div class="peer-txt"><b>${x.anon ? 'Invité' : nameHTML(x.pseudo, x.by)}${x.me ? ' <span class="chip">toi</span>' : ''}</b>${titleHTML(x.by ? bestRankFor(x.by) : -1)}<span>${esc(peerStatus(x))}</span></div>
+      ${x.s === 'end' && x.r != null ? emblem(x.r) : ''}</div>`).join('') || '<p class="muted small" style="margin:0">Personne pour l’instant.</p>'}</div>`;
+}
+function toast(html){
+  let box = $('.toasts');
+  if (!box){ box = document.createElement('div'); box.className = 'toasts'; box.setAttribute('aria-live', 'polite'); document.body.appendChild(box); }
+  const t = document.createElement('div'); t.className = 'toast glass'; t.innerHTML = html;
+  box.appendChild(t); setTimeout(() => t.remove(), 5000);
+}
+
+/* ---------- Chat en direct ----------
+   Un document par joueur (chat/<id>) qui garde ses 30 derniers messages :
+   tout le monde lit tout, chacun n'écrit que le sien. */
+const CHAT = {on:false, open:false, list:[], docs:new Map(), sending:false, last:0, seen:store.get('ga2-chat-seen', 0), status:'off'};
+const CHAT_MAX = 240;
+function cleanText(t){ return String(t || '').replace(/[\u0000-\u0008\u000B-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069]/g, '').replace(/\s+/g, ' ').trim().slice(0, CHAT_MAX); }
+function sanitizeChatDoc(v){
+  if (!v || typeof v !== 'object') return null;
+  const pseudo = String(v.pseudo || '').slice(0, 16).trim(); if (!pseudo) return null;
+  const color = COLORS.includes(v.color) ? v.color : COLORS[0];
+  const msgs = Array.isArray(v.msgs) ? v.msgs.slice(-30).map(m => ({t:+m.t || 0, x:cleanText(m.x)})).filter(m => m.x && m.t) : [];
+  return {pseudo, color, msgs};
+}
+function startChat(){
+  if (!DB.db) return;
+  CHAT.on = true; CHAT.status = 'loading'; renderChat();
+  const timer = setTimeout(() => { if (CHAT.status === 'loading'){ CHAT.status = 'slow'; renderChat(); } }, 10000);
+  DB.db.collection('chat').onSnapshot(snap => {
+    clearTimeout(timer);
+    const docs = new Map();
+    snap.docs.forEach(d => { const c = sanitizeChatDoc(d.data()); if (c) docs.set(d.id, c); });
+    CHAT.docs = docs;
+    const all = [];
+    docs.forEach((c, id) => c.msgs.forEach(m => all.push({id, me:id === DB.uid, pseudo:c.pseudo, color:c.color, t:m.t, x:m.x})));
+    all.sort((a, b) => a.t - b.t);
+    const before = CHAT.list.length;
+    CHAT.list = all.slice(-120);
+    CHAT.status = 'live';
+    renderChat(CHAT.list.length > before);
+  }, () => { clearTimeout(timer); CHAT.status = 'error'; renderChat(); });
+}
+function chatUnread(){ return CHAT.list.filter(m => !m.me && m.t > CHAT.seen).length; }
+function renderChat(grew){
+  const badge = $('#chatBadge');
+  if (CHAT.open && CHAT.list.length){ CHAT.seen = Math.max(CHAT.seen, CHAT.list[CHAT.list.length - 1].t); store.set('ga2-chat-seen', CHAT.seen); }
+  const n = chatUnread();
+  badge.hidden = !n || CHAT.open; badge.textContent = n > 9 ? '9+' : n;
+  const live = LIVE.ok ? onlineList().length : 0;
+  $('#chatOn').textContent = live ? live + ' en ligne' : '';
+  if (!CHAT.open) return;
+  const list = $('#chatList');
+  const nearBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+  const day = t => new Date(t).toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
+  const hm = t => new Date(t).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  if (!DB.db || CHAT.status === 'error') list.innerHTML = '<p class="chat-empty">Le chat en direct n’est pas encore activé sur ce site.</p>';
+  else if (CHAT.status === 'loading') list.innerHTML = '<p class="chat-empty"><span class="spinner" style="display:block"></span>Connexion au chat…</p>';
+  else if (!CHAT.list.length) list.innerHTML = `<p class="chat-empty">${CHAT.status === 'slow' ? 'Le chat met du temps à répondre.' : 'Aucun message pour l’instant.<br>Lance la discussion !'}</p>`;
+  else {
+    let lastDay = '';
+    list.innerHTML = CHAT.list.map(m => {
+      const d = day(m.t); const sep = d !== lastDay ? `<span class="chat-day">${esc(d)}</span>` : ''; lastDay = d;
+      const rk = bestRankFor(m.id);
+      return `${sep}<div class="msg ${m.me ? 'me' : ''}">${avatarHTML(m.pseudo, m.color, rk)}
+        <div class="msg-b"><div class="msg-n"><b>${m.me ? 'Toi' : nameHTML(m.pseudo, m.id)}</b>${titleHTML(rk)} ${hm(m.t)}</div><p class="msg-t">${esc(m.x)}</p></div></div>`;
+    }).join('');
+  }
+  if (grew === undefined || grew === true || nearBottom) list.scrollTop = list.scrollHeight;
+  renderChatFoot();
+}
+function renderChatFoot(){
+  const foot = $('#chatFoot'), prof = getProfile();
+  const keep = foot.querySelector('#chatIn');
+  if (!DB.db){ foot.innerHTML = ''; return; }
+  if (!prof){ foot.innerHTML = '<p class="chat-note">Crée ton profil pour écrire.</p><button class="btn primary" style="width:100%" data-act="profile">S’inscrire</button>'; return; }
+  if (!DB.uid || DB.canWrite === false){ foot.innerHTML = '<p class="chat-note">Le chat est en lecture seule pour le moment.</p>'; return; }
+  if (keep) return;
+  foot.innerHTML = `<form class="chat-form" id="chatForm" autocomplete="off">
+    <input id="chatIn" maxlength="${CHAT_MAX}" placeholder="Écris un message…" aria-label="Message">
+    <button class="btn primary" type="submit" id="chatSend">Envoyer</button></form><div class="chat-count" id="chatCount"></div>`;
+  const inp = $('#chatIn');
+  inp.addEventListener('input', () => { const l = inp.value.length; $('#chatCount').textContent = l > CHAT_MAX - 40 ? (CHAT_MAX - l) + ' caractères restants' : ''; });
+  $('#chatForm').addEventListener('submit', e => { e.preventDefault(); sendChat(); });
+}
+async function sendChat(){
+  const inp = $('#chatIn'); if (!inp) return;
+  const x = cleanText(inp.value);
+  if (!x || CHAT.sending) return;
+  const wait = 1500 - (Date.now() - CHAT.last);
+  if (wait > 0){ $('#chatCount').textContent = 'Doucement… attends une seconde.'; return; }
+  const prof = getProfile(); if (!prof || !DB.uid) return;
+  CHAT.sending = true; $('#chatSend').disabled = true;
+  try {
+    const ref = DB.db.doc('chat/' + DB.uid);
+    let mine = CHAT.docs.get(DB.uid);
+    if (!mine){ try { const sn = await ref.get(); if (sn.exists) mine = sanitizeChatDoc(sn.data()); } catch(e){} }
+    const msgs = ((mine && mine.msgs) || []).concat({t:Date.now(), x}).slice(-30);
+    await ref.set({pseudo:prof.pseudo, color:prof.color, msgs});
+    inp.value = ''; $('#chatCount').textContent = ''; CHAT.last = Date.now();
+  } catch(e){
+    if (e && e.code === 'invalid_argument'){ DB.canWrite = false; renderChatFoot(); }
+    else if (e && e.code === 'quota_exceeded') $('#chatCount').textContent = 'Le chat est plein pour le moment.';
+    else $('#chatCount').textContent = 'Message non envoyé. Réessaie.';
+  }
+  CHAT.sending = false; const b = $('#chatSend'); if (b) b.disabled = false;
+  const i2 = $('#chatIn'); if (i2) i2.focus();
+}
+function toggleChat(force){
+  CHAT.open = force === undefined ? !CHAT.open : force;
+  $('#chat').hidden = !CHAT.open;
+  $('#chatBtn').setAttribute('aria-expanded', String(CHAT.open));
+  if (CHAT.open){ renderChat(true); setTimeout(() => { const i = $('#chatIn'); if (i && !(G && !G.answered && G.mode.type === 'type')) i.focus(); }, 50); }
+  else renderChat();
+}
+
+async function initDB(){
+  try {
+    const c = window.claude;
+    if (!c || typeof c.use !== 'function') return;
+    const [db, user] = await Promise.all([c.use('db'), c.use('user')]);
+    if (user){ try { ADMIN_ME = !!(await user.isOwner()); } catch(e){} if (ADMIN_ME) refreshIdentity(); }
+    if (!db) return;
+    DB.db = db;
+    if (user){
+      try { DB.uid = await user.id(); } catch(e){}
+      try { const w = await user.can('data.write'); if (w === false) DB.canWrite = false; } catch(e){}
+    }
+    if (DB.uid && !/^[A-Za-z0-9_\-.~:@+]{1,200}$/.test(DB.uid)) DB.uid = null;
+    DB.status = 'loading';
+    startChat();
+    let adminWritten = false;
+    db.doc('meta/admins').onSnapshot(sn => {
+      const v = sn.exists ? sn.data() : null;
+      const ids = v && Array.isArray(v.ids) ? v.ids.filter(x => typeof x === 'string').slice(0, 20) : [];
+      ADMINS = new Set(ids);
+      if (ADMIN_ME && DB.uid && !ADMINS.has(DB.uid) && !adminWritten && !sn.metadata.fromCache){
+        adminWritten = true;
+        db.doc('meta/admins').set({ids:[...ids, DB.uid]}).catch(() => {});
+      }
+      refreshIdentity();
+    }, () => {});
+    const timer = setTimeout(() => { if (DB.status === 'loading'){ DB.status = 'slow'; onDBChange(); } }, 10000);
+    db.collection('players').onSnapshot(snap => {
+      clearTimeout(timer);
+      const m = new Map();
+      snap.docs.forEach(d => { const p = sanitizePlayer(d.data()); if (p) m.set(d.id, p); });
+      if (DB.status === 'live' && !snap.metadata.fromCache){
+        m.forEach((p, id) => {
+          if (id === DB.uid) return;
+          const old = DB.players.get(id);
+          for (const mo of MODES){
+            const nb = p.best[mo.id], ob = old && old.best[mo.id];
+            if (nb && (!ob || nb.score > ob.score)){
+              toast(`${emblem(rankIdx(nb.score))}<span><b>${nameHTML(p.pseudo, id)}</b> vient de faire ${fmt(nb.score)} pts en ${esc(mo.short)} · ${RANKS[rankIdx(nb.score)].n}</span>`);
+              break;
+            }
+          }
+        });
+      }
+      DB.players = m;
+      DB.status = 'live';
+      onDBChange();
+    }, () => { clearTimeout(timer); DB.status = 'error'; onDBChange(); });
+  } catch(e){}
+}
+function onDBChange(){
+  renderProfChip();
+  if (VIEW === 'board') renderBoard(BOARD_TAB, false, true);
+  if (VIEW === 'home') updateHomeBest();
+}
+
+async function saveResult(res){
+  const prof = getProfile(); if (!prof) return {saved:false};
+  const all = store.get(LS.players, {});
+  const p = sanitizePlayer(all[prof.id]) || {pseudo:prof.pseudo, color:prof.color, best:{}, games:0};
+  p.pseudo = prof.pseudo; p.color = prof.color; p.games = (p.games || 0) + 1;
+  if (!p.best[res.mode] || res.score > p.best[res.mode].score) p.best[res.mode] = {score:res.score, diff:res.diff, at:res.at};
+  all[prof.id] = p; store.set(LS.players, all);
+  let shared = false;
+  if (DB.db && DB.uid && DB.canWrite !== false){
+    let mine = DB.players.get(DB.uid) || null;
+    try { const snap = await DB.db.doc('players/' + DB.uid).get(); if (snap.exists) mine = sanitizePlayer(snap.data()) || mine; } catch(e){}
+    mine = mine || {best:{}, games:0};
+    const best = {...mine.best};
+    if (!best[res.mode] || res.score > best[res.mode].score) best[res.mode] = {score:res.score, diff:res.diff, at:res.at};
+    try {
+      await DB.db.doc('players/' + DB.uid).set({pseudo:prof.pseudo, color:prof.color, best, games:(mine.games || 0) + 1, updated:Date.now()});
+      shared = true;
+    } catch(e){
+      if (e && e.code === 'invalid_argument') DB.canWrite = false;
+    }
+  }
+  return {saved:true, shared};
+}
+async function syncProfileToDB(){
+  const prof = getProfile();
+  if (!prof || !DB.db || !DB.uid || DB.canWrite === false) return;
+  const mine = DB.players.get(DB.uid);
+  if (!mine) return;
+  if (mine.pseudo === prof.pseudo && mine.color === prof.color) return;
+  try { await DB.db.doc('players/' + DB.uid).set({pseudo:prof.pseudo, color:prof.color, best:mine.best, games:mine.games, updated:Date.now()}); } catch(e){}
+}
+
+/* Identité : avatar encadré selon le meilleur rang, titre de saison, certification admin */
+let ADMINS = new Set(), ADMIN_ME = false;
+const VERIF = '<svg class="verif" viewBox="0 0 24 24" role="img" aria-label="Compte certifié"><path d="M12 1.5l2.6 1.9 3.2-.1 1 3.1 2.6 1.9-1 3.1 1 3.1-2.6 1.9-1 3.1-3.2-.1L12 22.5l-2.6-1.9-3.2.1-1-3.1-2.6-1.9 1-3.1-1-3.1 2.6-1.9 1-3.1 3.2.1z" fill="#1d9bf0"/><path d="M7.6 12.3l3 3 5.9-6.2" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function myIds(){ const p = getProfile(); return [DB.uid, p && p.id].filter(Boolean); }
+function isAdmin(id){ return !!id && (ADMINS.has(id) || (ADMIN_ME && myIds().includes(id))); }
+function nameHTML(pseudo, id){ return `<span class="pn">${esc(pseudo)}</span>${isAdmin(id) ? VERIF + '<span class="adm">Admin</span>' : ''}`; }
+function avatarHTML(pseudo, color, ri){ return `<span class="avatar fr${Math.max(0, ri | 0)}" style="--av:${color}">${esc(String(pseudo || '?')[0].toUpperCase())}</span>`; }
+function bestRankFor(id){
+  if (id && myIds().includes(id)) return myTopRank();
+  const p = DB.players.get(id) || localPlayers().get(id);
+  if (!p) return -1;
+  const bs = Object.values(p.best);
+  return bs.length ? Math.max(...bs.map(b => rankIdx(b.score))) : -1;
+}
+function refreshIdentity(){
+  renderProfChip(); renderLive();
+  if (VIEW === 'board') renderBoard(BOARD_TAB, false, false);
+  if (CHAT.open) renderChat(false);
+}
+
+function renderProfChip(){
+  const slot = $('#profSlot'), p = getProfile();
+  if (!p){ slot.innerHTML = '<button class="btn primary" data-act="profile">S’inscrire</button>'; return; }
+  const ri = myTopRank();
+  const myId = DB.uid || p.id;
+  slot.innerHTML = `<button class="btn chip-prof" data-act="profile" aria-label="Mon profil">
+    ${avatarHTML(p.pseudo, p.color, ri)}
+    <span class="pname">${nameHTML(p.pseudo, myId)}</span>${ri >= 0 ? emblem(ri) : ''}</button>`;
+}
+
+function openProfile(after){
+  const p = getProfile() || {pseudo:'', color:COLORS[0]};
+  let color = p.color;
+  const wrap = document.createElement('div');
+  wrap.className = 'modal';
+  wrap.innerHTML = `<form class="box glass" id="profForm" autocomplete="off">
+    <h2>${getProfile() ? 'Mon profil' : 'Inscription'}</h2>
+    <p class="muted">Ton pseudo apparaît au classement avec le rang de chaque partie.</p>
+    <div class="field"><label for="pp">Pseudo</label><input id="pp" maxlength="16" value="${esc(p.pseudo)}" placeholder="3 à 16 caractères"></div>
+    <div class="field"><label>Couleur</label><div class="swatches">${COLORS.map(c => `<button type="button" class="sw" style="--av:${c}" data-c="${c}" aria-label="Couleur ${c}" aria-pressed="${c === color}"></button>`).join('')}</div></div>
+    ${window.GEO_ARENA_CONFIG && DB.uid ? `<p class="muted small">Ton identifiant joueur : <code style="user-select:all;font-family:var(--mono)">${esc(DB.uid)}</code></p>` : ''}
+    <p class="err" id="perr"></p>
+    <div class="actions"><button class="btn primary" type="submit">${getProfile() ? 'Enregistrer' : 'Créer mon profil'}</button><button class="btn" type="button" data-close>Annuler</button></div>
+  </form>`;
+  document.body.appendChild(wrap);
+  const close = () => wrap.remove();
+  wrap.addEventListener('click', e => {
+    if (e.target === wrap || e.target.closest('[data-close]')) close();
+    const sw = e.target.closest('.sw');
+    if (sw){ color = sw.dataset.c; wrap.querySelectorAll('.sw').forEach(x => x.setAttribute('aria-pressed', String(x === sw))); }
+  });
+  wrap.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  $('#profForm', wrap).addEventListener('submit', e => {
+    e.preventDefault();
+    const v = $('#pp', wrap).value.trim();
+    if (v.length < 3){ $('#perr', wrap).textContent = 'Choisis un pseudo d’au moins 3 caractères.'; return; }
+    const prev = getProfile();
+    store.set(LS.profile, {id:prev ? prev.id : 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), pseudo:v.slice(0, 16), color});
+    close(); renderProfChip(); syncProfileToDB(); pushPresence();
+    if (VIEW === 'home') renderHome();
+    if (after) after();
+  });
+  setTimeout(() => $('#pp', wrap).focus(), 30);
+}
+
+/* =====================================================================
+   Composant carte (d3)
+   ===================================================================== */
+function createMap(host, opt){
+  const france = opt.view === 'france';
+  host.innerHTML = '';
+  const box = host.getBoundingClientRect();
+  const bw = box.width || 1000, bh = box.height || 560;
+  const W = 1000, H = Math.max(320, Math.round(W * bh / bw)), u = W / bw;
+  const ins = opt.insets || {l:0, r:0, t:0, b:0};
+  let ext = france
+    ? [[ins.l * u + 30, ins.t * u + 30], [W - ins.r * u - 30, H - ins.b * u - 30]]
+    : [[10, ins.t * u + 10], [W - 10, H - ins.b * u - 10]];
+  if (ext[1][0] - ext[0][0] < 250 || ext[1][1] - ext[0][1] < 200) ext = [[20, 20], [W - 20, H - 20]];
+  const svg = d3.select(host).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('preserveAspectRatio', 'xMidYMid meet')
+    .attr('class', 'map ' + (france ? 'france ' : 'world ') + (opt.layer === 'deps' ? 'deps ' : '') + (opt.borders === false ? 'noborders ' : '') + (opt.hover ? 'hoverable' : ''))
+    .attr('role', 'img').attr('aria-label', france ? 'Carte de France' : 'Carte du monde');
+  const proj = france
+    ? d3.geoConicConformal().parallels([44, 49]).rotate([-3, 0]).fitExtent(ext, GEO.frFC)
+    : d3.geoNaturalEarth1().fitExtent(ext, {type:'FeatureCollection', features:GEO.world});
+  const path = d3.geoPath(proj);
+  const defs = svg.append('defs');
+  defs.append('filter').attr('id', 'blur8').attr('x', '-10%').attr('y', '-10%').attr('width', '120%').attr('height', '120%')
+    .append('feGaussianBlur').attr('stdDeviation', 9);
+  const root = svg.append('g');
+  if (!france) root.append('path').attr('class', 'sphere').attr('d', path({type:'Sphere'}));
+  root.append('path').attr('class', 'grat').attr('d', path(d3.geoGraticule10()));
+  const areaEl = new Map();
+  const addEl = (k, el) => { if (!areaEl.has(k)) areaEl.set(k, []); areaEl.get(k).push(el); };
+  if (france){
+    root.append('g').selectAll('path').data(GEO.world.filter(f => f.k !== '250')).join('path').attr('class', 'nb').attr('d', path);
+    root.append('path').attr('class', 'shadow').attr('d', path(GEO.frOutline)).attr('transform', 'translate(0,8)').attr('filter', 'url(#blur8)');
+    const items = opt.layer === 'deps' ? GEO.deps : GEO.regions;
+    root.append('g').selectAll('path').data(items).join('path').attr('class', 'area').attr('d', r => path(r.f)).each(function(r){ addEl(r.key, this); });
+    if (opt.layer === 'deps') root.append('g').selectAll('path').data(GEO.regions).join('path').attr('class', 'regline').attr('d', r => path(r.f));
+    root.append('path').attr('class', 'outline').attr('d', path(GEO.frOutline));
+  } else {
+    root.append('g').selectAll('path').data(GEO.world).join('path').attr('class', 'area').attr('d', path).each(function(f){ addEl(f.k, this); });
+  }
+  const over = root.append('g');
+  const marks = svg.append('g').attr('class', 'marks').style('pointer-events', 'none');
+  let T = d3.zoomIdentity, M = [], clickable = false;
+  // Encart agrandi de l'Île-de-France (mode départements)
+  let inset = null;
+  if (opt.idfHost && GEO.deps){
+    const pc = GEO.deps.filter(x => ['75', '92', '93', '94'].includes(x.code));
+    const idf = pc.length === 4 ? pc : GEO.deps.filter(x => x.region === 'Île-de-France');
+    if (idf.length){
+      const S = 300;
+      const ip = d3.geoConicConformal().parallels([44, 49]).rotate([-3, 0]).fitExtent([[44, 44], [S - 44, S - 44]], {type:'FeatureCollection', features:idf.map(x => x.f)});
+      const ipath = d3.geoPath(ip);
+      const factor = Math.round(ip.scale() / proj.scale());
+      opt.idfHost.innerHTML = `<div class="idf-h"><span>${pc.length === 4 ? 'Paris et petite couronne' : 'Île-de-France'}</span><span>×${factor}</span></div>`;
+      const isvg = d3.select(opt.idfHost).append('svg').attr('viewBox', `0 0 ${S} ${S}`).attr('class', svg.attr('class')).attr('role', 'img').attr('aria-label', 'Île-de-France agrandie');
+      const cid = 'clip' + Math.random().toString(36).slice(2, 8);
+      isvg.append('defs').append('clipPath').attr('id', cid).append('rect').attr('width', S).attr('height', S);
+      const ig = isvg.append('g').attr('clip-path', `url(#${cid})`);
+      const near = GEO.deps.filter(x => { const b = ipath.bounds(x.f); return b[1][0] > 0 && b[0][0] < S && b[1][1] > 0 && b[0][1] < S; });
+      ig.append('g').selectAll('path').data(near).join('path').attr('class', 'area').attr('d', x => ipath(x.f)).each(function(x){ addEl(x.key, this); });
+      ig.append('g').selectAll('path').data(GEO.regions).join('path').attr('class', 'regline').attr('d', r => ipath(r.f));
+      const iover = ig.append('g');
+      const imarks = isvg.append('g').style('pointer-events', 'none');
+      isvg.on('click', ev => {
+        if (!clickable || !opt.onPick) return;
+        const [x, y] = d3.pointer(ev, isvg.node());
+        const ll = ip.invert([x, y]); if (!ll || !isFinite(ll[0])) return;
+        const m = isvg.node().getScreenCTM(); let sp = null;
+        if (m){ const p = isvg.node().createSVGPoint(); p.x = x; p.y = y; const q = p.matrixTransform(m); sp = {x:q.x, y:q.y}; }
+        opt.onPick(ll, null, sp);
+      });
+      inset = {isvg, ip, ipath, iover, imarks, S};
+    }
+  }
+  const maxK = france ? 10 : 90;
+  const zoom = d3.zoom().scaleExtent([1, maxK]).translateExtent([[0, 0], [W, H]]).clickDistance(9)
+    .on('zoom', e => { T = e.transform; root.attr('transform', T); drawMarks(); });
+  svg.call(zoom).on('dblclick.zoom', null);
+
+  const toLL = ev => {
+    const [x, y] = d3.pointer(ev, svg.node());
+    const g = T.invert([x, y]);
+    const ll = proj.invert(g);
+    if (!ll || !isFinite(ll[0]) || !isFinite(ll[1])) return null;
+    const back = proj(ll);
+    if (!back || Math.hypot(back[0] - g[0], back[1] - g[1]) > 2) return null;
+    return {ll, pt:[x, y]};
+  };
+  svg.on('click', ev => {
+    if (!clickable || !opt.onPick) return;
+    const r = toLL(ev); if (!r) return;
+    const s = screenPt(r.pt);
+    opt.onPick(r.ll, r.pt, s ? {x:s.x, y:s.y} : null);
+  });
+  function screenPt(pt){ const n = svg.node(), m = n.getScreenCTM(); if (!m) return null; const p = n.createSVGPoint(); p.x = pt[0]; p.y = pt[1]; return p.matrixTransform(m); }
+  svg.on('mousemove', ev => {
+    if (!opt.coordEl) return;
+    const r = toLL(ev);
+    opt.coordEl.textContent = r ? `${fmt1(Math.abs(r.ll[1]))}° ${r.ll[1] >= 0 ? 'N' : 'S'} · ${fmt1(Math.abs(r.ll[0]))}° ${r.ll[0] >= 0 ? 'E' : 'O'}` : 'Hors carte';
+  });
+
+  const pinShape = (layer, x, y, cls, sc = 1) => {
+    const g = layer.append('g').attr('transform', `translate(${x},${y}) scale(${sc})`).append('g').attr('class', 'pin ' + (cls || 'pin-you'));
+    g.append('path').attr('d', 'M0 0 C-5 -8 -10 -13 -10 -19 A10 10 0 1 1 10 -19 C10 -13 5 -8 0 0 Z');
+    g.append('circle').attr('cx', 0).attr('cy', -19).attr('r', 3.6);
+  };
+  function drawMarks(){
+    if (inset){
+      inset.imarks.selectAll('*').remove();
+      for (const m of M){
+        if (m.type !== 'pin') continue;
+        const p = inset.ip(m.ll);
+        if (p && p[0] > -5 && p[0] < inset.S + 5 && p[1] > -5 && p[1] < inset.S + 5) pinShape(inset.imarks, p[0], p[1], m.cls, 1.15);
+      }
+    }
+    marks.selectAll('*').remove();
+    for (const m of M){
+      const p = proj(m.ll); if (!p) continue;
+      const [x, y] = T.apply(p);
+      if (m.type === 'ring'){
+        marks.append('circle').attr('class', 'ring').attr('cx', x).attr('cy', y).attr('r', m.r || 22);
+      } else if (m.type === 'pin'){
+        pinShape(marks, x, y, m.cls);
+        if (m.label) marks.append('text').attr('class', 'lbl').attr('x', x + 14).attr('y', y - 22).text(m.label);
+      } else if (m.type === 'label'){
+        marks.append('text').attr('class', 'lbl km').attr('x', x).attr('y', y + 22).attr('text-anchor', 'middle').text(m.label);
+      }
+    }
+  }
+  function constrainT(t){
+    const k = t.k;
+    const x = clamp(t.x, W - W * k, 0), y = clamp(t.y, H - H * k, 0);
+    return d3.zoomIdentity.translate(x, y).scale(k);
+  }
+  function zoomToBounds(b, mk = 12, dur = 700, pad = 1){
+    const [[x0, y0], [x1, y1]] = b;
+    const dx = Math.max(1, x1 - x0) * pad, dy = Math.max(1, y1 - y0) * pad, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    const k = clamp(0.86 / Math.max(dx / W, dy / H), 1, Math.min(mk, maxK));
+    const t = constrainT(d3.zoomIdentity.translate(W / 2 - cx * k, H / 2 - cy * k).scale(k));
+    if (REDUCED || !dur) svg.call(zoom.transform, t);
+    else svg.transition().duration(dur).ease(d3.easeCubicInOut).call(zoom.transform, t);
+  }
+  const boundsLL = lls => { const ps = lls.map(ll => proj(ll)).filter(Boolean); return [[d3.min(ps, p => p[0]), d3.min(ps, p => p[1])], [d3.max(ps, p => p[0]), d3.max(ps, p => p[1])]]; };
+  return {
+    svg, proj, path, W, H,
+    setClickable(v){
+      clickable = v;
+      [svg, inset && inset.isvg].forEach(x => { if (x){ x.classed('clickable', v); x.classed('hoverable', v && !!opt.hover); } });
+    },
+    clear(){ M = []; drawMarks(); over.selectAll('*').remove(); if (inset) inset.iover.selectAll('*').remove(); areaEl.forEach(list => list.forEach(el => el.classList.remove('target', 'hit', 'reveal', 'wrong'))); },
+    mark(m){ M.push(m); drawMarks(); },
+    mark2(list){ M.push(...list); drawMarks(); },
+    line(a, b){
+      const ls = {type:'LineString', coordinates:[a, b]};
+      over.append('path').attr('class', 'gline').attr('d', path(ls));
+      if (inset) inset.iover.append('path').attr('class', 'gline').attr('d', inset.ipath(ls));
+    },
+    area(key, cls){ (areaEl.get(key) || []).forEach(el => { el.classList.add(cls); el.parentNode.appendChild(el); }); },
+    featureBounds(f){ return path.bounds(f); },
+    boundsLL,
+    zoomToBounds,
+    zoomFeature(f, ctx = 3, mk = 14){
+      const b = path.bounds(f);
+      const wide = (b[1][0] - b[0][0]) > W * 0.6;
+      if (wide){ this.reset(); return; }
+      zoomToBounds(b, mk, 750, ctx);
+    },
+    isTiny(f){ const b = path.bounds(f); return (b[1][0] - b[0][0]) * T.k < 14 && (b[1][1] - b[0][1]) * T.k < 14; },
+    tinyAfter(f, k){ const b = path.bounds(f); return Math.max(b[1][0] - b[0][0], b[1][1] - b[0][1]) * k < 16; },
+    reset(dur = 500){ if (REDUCED || !dur) svg.call(zoom.transform, d3.zoomIdentity); else svg.transition().duration(dur).call(zoom.transform, d3.zoomIdentity); },
+    zoomBy(f){ svg.transition().duration(250).call(zoom.scaleBy, f); },
+    k(){ return T.k; },
+    screenPt,
+    projectScreen(ll){ const p = proj(ll); return p ? this.screenPt(T.apply(p)) : null; }
+  };
+}
+
+/* =====================================================================
+   Accueil
+   ===================================================================== */
+let VIEW = 'home', DIFFK = store.get(LS.diff, 'moyen'), GLOBE = null;
+if (!DIFF[DIFFK]) DIFFK = 'moyen';
+
+function renderHome(){
+  VIEW = 'home'; stopGame();
+  const p = getProfile(), ri = myTopRank();
+  const groups = ['France', 'Monde'];
+  app.innerHTML = `
+  <section class="hero">
+    <div>
+      <p class="eyebrow">7 modes · 3 niveaux · 8 rangs</p>
+      <h1>Vise juste.<span class="l2">Réponds vite.</span></h1>
+      <p class="lede">Régions, départements, villes, pays et capitales sur de vraies cartes. Chaque kilomètre d’écart et chaque seconde perdue te coûtent des points. Grimpe de Bronze à Légende.</p>
+      <div class="hero-cta">
+        <button class="btn primary big" data-act="play">Choisir un mode</button>
+        <span class="hero-me">${p
+          ? `${avatarHTML(p.pseudo, p.color, ri)} ${nameHTML(p.pseudo, DB.uid || p.id)} · ${ri >= 0 ? 'meilleur rang ' + RANKS[ri].n : 'aucune partie classée'} ${titleHTML(ri)}`
+          : `<button class="linkbtn" data-act="profile">Crée ton profil</button> pour entrer au classement`}</span>
+      </div>
+    </div>
+    <div class="globe-wrap"><canvas id="globe" aria-label="Globe terrestre en rotation" role="img"></canvas>
+      <span class="globe-tag t1">48,86° N · 2,35° E</span><span class="globe-tag t2">fais tourner le globe</span></div>
+  </section>
+
+  <section class="section" id="modes">
+    <div class="sec-head"><h2>Niveau</h2><p>Le niveau multiplie ton score final et fixe le rang le plus haut que tu peux atteindre.</p></div>
+    <div class="diffs" role="group" aria-label="Niveau de difficulté">
+      ${Object.entries(DIFF).map(([k, d]) => `<button class="diff" data-act="diff" data-v="${k}" aria-pressed="${k === DIFFK}">
+        <span class="d-top"><b>${d.label}</b><span class="mult">×${String(d.mult).replace('.', ',')}</span></span>
+        <p>${d.lines.join(' · ')}</p>
+        <span class="cap">${emblem(rankByName(d.max))} Rang max : ${d.max}</span></button>`).join('')}
+    </div>
+    ${groups.map(g => `<div class="group-label">${g}</div>
+      <div class="modes">${MODES.filter(m => m.group === g).map(m => `<button class="mode" data-act="mode" data-id="${m.id}">
+        <div class="mini loading" data-mini="${m.id}"></div>
+        <div class="mode-body">
+          <div class="mode-row"><h3>${m.name}</h3><span class="tag ${m.type}">${m.type === 'map' ? 'Carte cliquable' : 'Saisie'}</span></div>
+          <p>${m.desc}</p>
+          <div class="mode-best" data-best="${m.id}"></div>
+        </div></button>`).join('')}</div>`).join('')}
+  </section>
+
+  <section class="section">
+    <div class="sec-head"><h2>Comment marquer</h2><p>Jusqu’à 1 000 points par question, 10 questions par partie.</p></div>
+    <div class="how">
+      <div class="how-item"><span class="n">01 · PRÉCISION</span><h3>Plus près, plus de points</h3><p>Sur les cartes, un clic dans la zone vaut 100 %. À côté, la précision baisse avec la distance en kilomètres. À la saisie, chaque erreur retire 25 %.</p></div>
+      <div class="how-item"><span class="n">02 · VITESSE</span><h3>Le chrono pèse lourd</h3><p>Une réponse instantanée garde 100 % des points, une réponse à la dernière seconde n’en garde que 30 %. À la saisie, la bonne réponse se valide toute seule dès qu’elle est complète.</p></div>
+      <div class="how-item"><span class="n">03 · SÉRIE</span><h3>Enchaîne les bonnes réponses</h3><p>Chaque bonne réponse d’affilée ajoute 10 % de bonus, jusqu’à <code>+50 %</code>. Une erreur remet la série à zéro.</p></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="sec-head"><h2>Rangs et récompenses · ${SEASON}</h2><p>Le score final d’une partie fixe ton rang. Bronze à Diamant ont 3 divisions (III, II, I). À partir de Master, tu gagnes un titre de saison affiché à côté de ton pseudo.</p></div>
+    <div class="rewards">${RANKS.map((r, i) => `<div class="rw ${i === ri ? 'cur' : ''}" style="--rc:${r.c}">${emblem(i, i <= 4 ? 1 : 0)}<b>${r.n}</b><span class="thr">${fmt(r.min)} pts et +</span>${i >= 5 ? titleHTML(i) : ''}<p>${REWARDS[i]}</p></div>`).join('')}</div>
+  </section>
+  <p class="credits">Cartes : Natural Earth via world-atlas (pays), Highcharts Map Collection (régions et départements). Les tracés sont simplifiés pour le jeu.</p>`;
+  updateHomeBest();
+  pushPresence();
+  startGlobe($('#globe'));
+  Promise.all([landP, geoP]).then(() => { if (VIEW === 'home') renderMinis(); loadDeps().then(() => { if (VIEW === 'home') renderMinis(); }).catch(() => {}); }).catch(() => {
+    document.querySelectorAll('.mini').forEach(el => { el.classList.remove('loading'); el.innerHTML = '<span class="muted small">Cartes indisponibles</span>'; });
+  });
+}
+function updateHomeBest(){
+  const best = myBest();
+  document.querySelectorAll('[data-best]').forEach(el => {
+    const b = best[el.dataset.best];
+    el.innerHTML = b ? `${emblem(rankIdx(b.score))}<span>Record <b>${fmt(b.score)}</b> · ${RANKS[rankIdx(b.score)].n}</span>` : '<span>Pas encore joué</span>';
+  });
+}
+function renderMinis(){
+  const w = 300, h = 150;
+  const svgWrap = inner => `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${inner}</svg>`;
+  const fr = d3.geoConicConformal().parallels([44, 49]).rotate([-3, 0]).fitExtent([[10, 8], [w - 10, h - 8]], GEO.frFC);
+  const frp = d3.geoPath(fr);
+  const wp = d3.geoNaturalEarth1().fitExtent([[6, 6], [w - 6, h - 6]], {type:'Sphere'});
+  const wpath = d3.geoPath(wp);
+  const eu = d3.geoConicConformal().parallels([40, 60]).rotate([-14, 0]).fitExtent([[6, 6], [w - 6, h - 6]], {type:'MultiPoint', coordinates:[[-11, 36], [32, 36], [-11, 66], [32, 66]]});
+  const eup = d3.geoPath(eu);
+  const occ = GEO.regions.find(r => r.name === 'Occitanie');
+  const draw = {
+    'regions': () => GEO.regions.map(r => `<path class="${r === occ ? 'm-hi' : 'm-land'}" d="${frp(r.f)}"/>`).join(''),
+    'departements': () => GEO.deps ? GEO.deps.map(x => `<path class="${x.code === '33' ? 'm-hi' : 'm-land'}" d="${frp(x.f)}"/>`).join('') : `<path class="m-land" d="${frp(GEO.frOutline)}"/>`,
+    'villes': () => `<path class="m-land" d="${frp(GEO.frOutline)}"/>` + CITIES.filter(c => c.tier === 1).slice(0, 14).map(c => { const p = fr([c.lon, c.lat]); return `<circle class="m-dot" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.2"/>`; }).join(''),
+    'pays-carte': () => `<path class="m-land" d="${wpath(GEO.land)}"/>` + (() => { const p = wp([-74, -9]); return `<g transform="translate(${p[0].toFixed(1)},${p[1].toFixed(1)})"><path d="M0 0 C-3 -5 -6 -8 -6 -11 A6 6 0 1 1 6 -11 C6 -8 3 -5 0 0Z" fill="#ff5b3a" stroke="#fff" stroke-width="1.2"/></g>`; })(),
+    'pays-nom': () => { const br = countryByKey.get('076'); return `<path class="m-land" d="${wpath(GEO.land)}"/>` + (br && br.f ? `<path class="m-hi" d="${wpath(br.f)}"/>` : ''); },
+    'cap-eu': () => { const it = countryByKey.get('380'); return `<path class="m-land" d="${eup(GEO.land)}"/>` + (it && it.f ? `<path class="m-hi" d="${eup(it.f)}"/>` : ''); },
+    'cap-monde': () => `<path class="m-land" d="${wpath(GEO.land)}"/>` + CAPITAL_DOTS.map(ll => { const p = wp(ll); return `<circle class="m-dot" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.2"/>`; }).join('')
+  };
+  document.querySelectorAll('[data-mini]').forEach(el => {
+    try { el.innerHTML = svgWrap(draw[el.dataset.mini]()); } catch(e){ el.innerHTML = ''; }
+    el.classList.remove('loading');
+  });
+}
+
+/* Globe en rotation (canvas) */
+function startGlobe(canvas){
+  if (GLOBE) GLOBE.stop();
+  if (!canvas) return;
+  let raf = 0, alive = true, rot = [-8, -28], drag = null, last = performance.now();
+  const ctx = canvas.getContext('2d');
+  const proj = d3.geoOrthographic().clipAngle(90).precision(.6);
+  const path = d3.geoPath(proj, ctx);
+  const grat = d3.geoGraticule10();
+  function frame(now){
+    if (!alive) return;
+    const dt = Math.min(50, now - last); last = now;
+    const r = canvas.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(10, Math.round(r.width * dpr)), h = Math.max(10, Math.round(r.height * dpr));
+    if (canvas.width !== w || canvas.height !== h){ canvas.width = w; canvas.height = h; }
+    const R = Math.min(w, h) * 0.40, cx = w / 2, cy = h / 2;
+    if (!drag && !REDUCED) rot[0] += dt * 0.012;
+    proj.scale(R).translate([cx, cy]).rotate(rot);
+    ctx.clearRect(0, 0, w, h);
+    // halo
+    let g = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 1.35);
+    g.addColorStop(0, 'rgba(79,216,255,.34)'); g.addColorStop(1, 'rgba(79,216,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * 1.35, 0, 2 * Math.PI); ctx.fill();
+    // océan
+    g = ctx.createRadialGradient(cx - R * .35, cy - R * .4, R * .1, cx, cy, R);
+    g.addColorStop(0, '#1f5aa6'); g.addColorStop(1, '#061733');
+    ctx.fillStyle = g; ctx.beginPath(); path({type:'Sphere'}); ctx.fill();
+    ctx.strokeStyle = 'rgba(243,238,227,.08)'; ctx.lineWidth = dpr; ctx.beginPath(); path(grat); ctx.stroke();
+    if (GEO.land){
+      ctx.fillStyle = '#f2e5c6'; ctx.beginPath(); path(GEO.land); ctx.fill();
+      ctx.strokeStyle = 'rgba(120,98,60,.7)'; ctx.lineWidth = .8 * dpr; ctx.stroke();
+    }
+    // ombre de terminateur
+    g = ctx.createRadialGradient(cx - R * .3, cy - R * .35, R * .2, cx, cy, R * 1.02);
+    g.addColorStop(0, 'rgba(255,255,255,.10)'); g.addColorStop(.6, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(3,8,20,.55)');
+    ctx.fillStyle = g; ctx.beginPath(); path({type:'Sphere'}); ctx.fill();
+    // épingles
+    const center = [-rot[0], -rot[1]];
+    CAPITAL_DOTS.forEach((ll, i) => {
+      if (d3.geoDistance(ll, center) > Math.PI / 2 - .08) return;
+      const [x, y] = proj(ll);
+      const ph = ((now / 1400) + i * .37) % 1;
+      ctx.beginPath(); ctx.arc(x, y, (4 + ph * 16) * dpr, 0, 2 * Math.PI);
+      ctx.strokeStyle = `rgba(255,106,77,${(1 - ph) * .8})`; ctx.lineWidth = 1.5 * dpr; ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, y, 3.6 * dpr, 0, 2 * Math.PI); ctx.fillStyle = '#ff6a4d'; ctx.fill();
+      ctx.lineWidth = 1.4 * dpr; ctx.strokeStyle = '#fff'; ctx.stroke();
+    });
+    ctx.strokeStyle = 'rgba(243,238,227,.25)'; ctx.lineWidth = 1 * dpr; ctx.beginPath(); path({type:'Sphere'}); ctx.stroke();
+    raf = requestAnimationFrame(frame);
+  }
+  canvas.onpointerdown = e => { drag = {x:e.clientX, y:e.clientY, r:rot.slice()}; canvas.setPointerCapture(e.pointerId); };
+  canvas.onpointermove = e => { if (!drag) return; rot = [drag.r[0] + (e.clientX - drag.x) * .35, clamp(drag.r[1] - (e.clientY - drag.y) * .35, -70, 70)]; };
+  canvas.onpointerup = canvas.onpointercancel = () => { drag = null; };
+  raf = requestAnimationFrame(frame);
+  landP.then(() => {}).catch(() => {});
+  GLOBE = {stop(){ alive = false; cancelAnimationFrame(raf); GLOBE = null; }};
+}
+
+/* =====================================================================
+   Partie
+   ===================================================================== */
+let G = null;
+const NQ = 10;
+const RING_C = 2 * Math.PI * 22;
+
+function buildQuestions(mode, dk){
+  const d = DIFF[dk];
+  let pool = [];
+  if (mode.id === 'regions'){
+    pool = GEO.regions.map(r => ({kind:'area', key:r.key, f:r.f, name:r.name, hint:dk === 'facile' ? 'Chef-lieu : ' + r.cap : '', fact:'Chef-lieu : ' + r.cap}));
+  } else if (mode.id === 'departements'){
+    pool = GEO.deps.filter(x => d.tiers.includes(x.tier)).map(x => {
+      const full = x.code ? `${x.name} (${x.code})` : x.name;
+      const byNum = dk === 'difficile' && x.code && Math.random() < .5;
+      return {kind:'area', dep:true, key:x.key, f:x.f, name:full,
+        label:byNum ? 'le n° ' + x.code : dk === 'difficile' ? x.name : full,
+        hint:dk === 'facile' ? 'Région : ' + x.region : '', fact:x.region};
+    });
+  } else if (mode.id === 'villes'){
+    pool = CITIES.filter(c => d.tiers.includes(c.tier)).map(c => ({kind:'city', name:c.name, ll:[c.lon, c.lat], hint:dk === 'facile' && c.region ? 'Région : ' + c.region : '', fact:c.region ? c.region : ''}));
+  } else {
+    const list = COUNTRIES.filter(c => d.tiers.includes(c.tier) && (mode.id !== 'cap-eu' || c.cont === 'EU') && (mode.id === 'cap-eu' || mode.id === 'cap-monde' ? true : !!c.f));
+    pool = list.map(c => {
+      if (mode.id === 'pays-carte') return {kind:'area', key:c.key, f:c.f, name:c.name, hint:dk === 'facile' ? 'Continent : ' + CONT[c.cont] : '', fact:'Capitale : ' + c.cap};
+      const isCap = mode.id !== 'pays-nom';
+      const answer = isCap ? c.cap : c.name;
+      const answers = [answer, ...(isCap ? c.capAl : c.nameAl)];
+      let hint = '';
+      if (dk === 'facile') hint = pattern(answer, true) + (isCap ? '' : '  ·  ' + CONT[c.cont]);
+      else if (dk === 'moyen') hint = 'Commence par « ' + answer[0].toUpperCase() + ' »';
+      return {kind:'typed', key:c.key, f:c.f, name:c.name, answer, answers, hint, fact:isCap ? '' : 'Capitale : ' + c.cap, cont:c.cont};
+    });
+  }
+  return shuffle(pool).slice(0, Math.min(NQ, pool.length));
+}
+
+async function startGame(id){
+  const mode = modeById(id); if (!mode) return;
+  sfx('tick');
+  stopGame();
+  if (GLOBE) GLOBE.stop();
+  VIEW = 'game';
+  const d = DIFF[DIFFK];
+  app.innerHTML = `<section class="arena">
+    <div class="hud">
+      <div class="qcard glass">
+        <div class="q-top"><span class="chip">${esc(mode.short)}</span><span class="chip ghost">${d.label} ×${String(d.mult).replace('.', ',')}</span>
+          <span class="q-count">Question <b id="qn">1</b>/<span id="qt">${NQ}</span></span><button class="linkbtn" data-act="home">Quitter</button></div>
+        <div class="q-main"><div class="q-text"><p class="q-prompt" id="prompt">Chargement…</p><p class="q-hint" id="hint"></p></div>
+          <div class="tring" id="tring"><svg viewBox="0 0 52 52"><circle class="tr-bg" cx="26" cy="26" r="22"/><circle class="tr-fg" id="trfg" cx="26" cy="26" r="22"/></svg><span id="tsec">–</span></div></div>
+        <div class="dots" id="dots">${Array.from({length:NQ}, () => '<i></i>').join('')}</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="scard glass"><small>Score</small><b id="score">0</b><div class="streak" id="streak">Pas de série</div></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="maphost" id="maphost"></div>
+      <div class="loading" id="loading"><div><div class="spinner"></div>Chargement des cartes…</div></div>
+      <div class="zoomctl"><button data-z="in" aria-label="Zoomer">+</button><button data-z="out" aria-label="Dézoomer">−</button><button data-z="reset" aria-label="Recentrer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
+      <div class="coord" id="coord">Survole la carte</div>
+      <div class="popups" id="popups"></div>
+    </div>
+    <div class="dock" id="dock"></div>
+  </section>`;
+  window.scrollTo({top:0});
+  try { await geoP; if (mode.layer === 'deps') await loadDeps(); } catch(e){
+    $('#loading').innerHTML = '<div>Impossible de charger les cartes.<br>Vérifie ta connexion puis relance la partie.<br><br><button class="btn" data-act="home">Retour</button></div>';
+    return;
+  }
+  if (VIEW !== 'game') return;
+  $('#loading').remove();
+  const qs = buildQuestions(mode, DIFFK);
+  G = {mode, dk:DIFFK, qs, i:0, raw:0, streak:0, maxStreak:0, hits:0, log:[], answered:true, t0:0, limit:0, raf:0, attempts:0, lastTick:0, map:null};
+  $('#qt').textContent = qs.length;
+  $('#dots').innerHTML = qs.map(() => '<i></i>').join('');
+  const view = mode.view === 'france' ? 'france' : 'world';
+  let insets = {l:0, r:0, t:0, b:0};
+  let idfHost = null;
+  if (mode.layer === 'deps'){ idfHost = document.createElement('div'); idfHost.className = 'idf'; $('#stage').appendChild(idfHost); }
+  const desk = window.matchMedia('(min-width: 900px)').matches;
+  if (!desk && idfHost) insets = {l:0, r:0, t:idfHost.getBoundingClientRect().width + 34, b:60};
+  if (desk){
+    $('#prompt').textContent = 'Prépare-toi…';
+    const st = $('#stage').getBoundingClientRect(), qc = $('.qcard').getBoundingClientRect(), sc = $('.scard').getBoundingClientRect();
+    insets = view === 'france'
+      ? {l:qc.right - st.left, r:st.right - sc.left, t:0, b:56}
+      : {l:0, r:0, t:(qc.bottom - st.top) * 0.6, b:50};
+    if (idfHost){ idfHost.style.top = (qc.bottom - st.top + 14) + 'px'; idfHost.style.width = Math.max(200, Math.min(290, qc.width * .55, st.height - (qc.bottom - st.top) - 90)) + 'px'; }
+  }
+  const mapP = () => createMap($('#maphost'), {
+    view, insets, layer:mode.layer, idfHost, borders:view === 'france' ? d.frBorders : true,
+    hover:mode.type === 'map' && d.hover,
+    coordEl:$('#coord'),
+    onPick:(ll, pt, sp) => onPick(ll, pt, sp)
+  });
+  G.map = mapP();
+  const gRef = G;
+  await countdown();
+  if (G !== gRef || VIEW !== 'game') return;
+  showQuestion();
+}
+function countdown(){
+  return new Promise(res => {
+    if (REDUCED) return res();
+    const st = $('#stage'); if (!st) return res();
+    const el = document.createElement('div'); el.className = 'count'; st.appendChild(el);
+    $('#prompt').textContent = 'Prêt ?';
+    const seq = ['3', '2', '1', 'Go !'];
+    const g0 = G;
+    let k = 0;
+    const tick = () => {
+      if (G !== g0 || VIEW !== 'game' || k >= seq.length){ el.remove(); return res(); }
+      el.innerHTML = `<span>${seq[k]}</span>`; sfx(k < 3 ? 'tick' : 'start'); k++;
+      setTimeout(tick, k === seq.length ? 420 : 560);
+    };
+    tick();
+  });
+}
+function stopGame(){ if (G){ cancelAnimationFrame(G.raf); G.answered = true; } G = null; }
+
+function showQuestion(){
+  const q = G.qs[G.i], m = G.map, mode = G.mode, d = DIFF[G.dk];
+  G.answered = false; G.attempts = 0; G.lastTick = 0;
+  m.clear();
+  $('#qn').textContent = G.i + 1;
+  document.querySelectorAll('#dots i').forEach((el, k) => el.classList.toggle('cur', k === G.i));
+  const prompt = $('#prompt'), hint = $('#hint'), dock = $('#dock');
+  hint.textContent = q.hint || '';
+  const qc = $('.qcard'); if (qc){ qc.classList.remove('qin'); void qc.offsetWidth; qc.classList.add('qin'); }
+  if (mode.type === 'map'){
+    prompt.innerHTML = (q.kind === 'city' ? 'Place ' : 'Trouve ') + `<span class="hl">${esc(q.label || q.name)}</span>`;
+    m.setClickable(true);
+    m.reset(450);
+    dock.innerHTML = `<div class="tipbar"><div class="tip glass">Clique sur la carte · molette ou pincement pour zoomer</div><button class="btn skip glass" type="button" data-act="skip" title="Échap">Suivant ›</button></div>`;
+    G.limit = d.tMap;
+  } else {
+    prompt.innerHTML = mode.id === 'pays-nom' ? 'Quel est ce pays ?' : `Capitale de <span class="hl">${esc(q.name)}</span> ?`;
+    m.setClickable(false);
+    if (q.f){
+      m.area(q.key, 'target');
+      if (mode.view === 'europe'){
+        const eb = m.boundsLL([[-24, 35], [44, 35], [-24, 70], [44, 70], [10, 71], [10, 34]]);
+        const fb = m.featureBounds(q.f);
+        const inside = fb[0][0] >= eb[0][0] - 5 && fb[1][0] <= eb[1][0] + 5 && fb[0][1] >= eb[0][1] - 5 && fb[1][1] <= eb[1][1] + 5;
+        m.zoomToBounds(inside ? eb : [[Math.min(eb[0][0], fb[0][0]), Math.min(eb[0][1], fb[0][1])], [Math.max(eb[1][0], fb[1][0]), Math.max(eb[1][1], fb[1][1])]], 8, 650);
+        setTimeout(() => { if (G && !G.answered && q === G.qs[G.i] && m.isTiny(q.f)) m.mark({type:'ring', ll:d3.geoCentroid(q.f), r:20}); }, 700);
+      } else {
+        m.zoomFeature(q.f, 3.2, 14);
+        setTimeout(() => { if (G && !G.answered && q === G.qs[G.i] && m.isTiny(q.f)) m.mark({type:'ring', ll:d3.geoCentroid(q.f), r:20}); }, 800);
+      }
+    } else m.reset(400);
+    const maxTries = 3;
+    dock.innerHTML = `<form class="ansform glass" id="ansform" autocomplete="off">
+      <input id="ans" type="text" placeholder="${mode.id === 'pays-nom' ? 'Nom du pays…' : 'Nom de la capitale…'}" aria-label="Ta réponse" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="done">
+      <span class="tries" id="tries">${maxTries} essais</span>
+      <button class="btn primary" type="submit">Valider</button>
+      <button class="btn skip" type="button" data-act="skip" id="skipBtn" title="Échap">Suivant ›</button></form>`;
+    const inp = $('#ans');
+    inp.addEventListener('input', () => { if (!G.answered && exactMatch(inp.value, q.answers)) typedCorrect(); });
+    $('#ansform').addEventListener('submit', e => {
+      e.preventDefault();
+      if (G.answered) return;
+      const v = inp.value.trim(); if (!v) return;
+      if (fuzzyMatch(v, q.answers)) typedCorrect(); else typedWrong(v);
+    });
+    setTimeout(() => { const a = document.activeElement; if (!(a && a.closest && a.closest('#chat'))) inp.focus({preventScroll:true}); }, 30);
+    G.limit = d.tType;
+  }
+  startTimer(mode.type === 'map' ? 350 : 650);
+  pushPresence();
+}
+
+function startTimer(delay = 0){
+  cancelAnimationFrame(G.raf);
+  G.t0 = performance.now() + (REDUCED ? 0 : delay);
+  const fg = $('#trfg'), sec = $('#tsec'), ring = $('#tring');
+  const loop = () => {
+    if (!G || G.answered) return;
+    const left = Math.min(G.limit, Math.max(0, G.limit - (performance.now() - G.t0) / 1000));
+    fg.style.strokeDashoffset = (RING_C * (1 - left / G.limit)).toFixed(2);
+    const s = Math.ceil(left);
+    sec.textContent = s;
+    ring.classList.toggle('low', left <= 3);
+    const stg = $('#stage'); if (stg) stg.classList.toggle('danger', left <= 3 && left > 0);
+    if (left <= 3 && s !== G.lastTick && s > 0){ G.lastTick = s; sfx('tick'); }
+    if (left <= 0){ onTimeout(); return; }
+    G.raf = requestAnimationFrame(loop);
+  };
+  loop();
+}
+const speedNow = () => G ? clamp(1 - ((performance.now() - G.t0) / 1000) / G.limit, 0, 1) : 0;
+const elapsed = () => G ? Math.max(0, (performance.now() - G.t0) / 1000) : 0;
+
+function onPick(ll, pt, sp){
+  if (!G || G.answered) return;
+  const q = G.qs[G.i], d = DIFF[G.dk], m = G.map, S = speedNow(), sec = elapsed();
+  let P, hit, dist = 0, detail, title;
+  m.setClickable(false);
+  if (q.kind === 'city'){
+    dist = d3.geoDistance(ll, q.ll) * R_EARTH;
+    P = Math.exp(-dist / d.cityK);
+    hit = dist <= d.cityHit;
+    m.line(ll, q.ll);
+    m.mark2([{type:'pin', ll:q.ll, cls:'pin-true', label:q.name}, {type:'pin', ll, cls:'pin-you'}, {type:'label', ll:d3.geoInterpolate(ll, q.ll)(.5), label:fmt(dist) + ' km'}]);
+    title = hit ? (dist < 10 ? 'Dans le mille !' : 'Bien placé !') : P > .05 ? 'Pas loin…' : 'Raté';
+    detail = `Ton épingle est à <b>${fmt(dist)} km</b> de ${esc(q.name)}${q.fact ? ' <span class="muted">(' + esc(q.fact) + ')</span>' : ''}.`;
+  } else {
+    const inside = d3.geoContains(q.f, ll);
+    const isWorld = G.mode.view !== 'france';
+    let near = null;
+    if (inside){ P = 1; hit = true; }
+    else {
+      const n = nearestOnFeature(q.f, ll); dist = n.d; near = n.pt;
+      const tol = isWorld ? 25 : q.dep ? 4 : 0;
+      if (dist <= tol){ P = 1; hit = true; }
+      else { P = Math.max(0, 1 - dist / (isWorld ? d.areaD.w : q.dep ? d.areaD.dep : d.areaD.fr)); hit = false; }
+    }
+    m.area(q.key, hit ? 'hit' : 'reveal');
+    let clicked = null;
+    if (!hit){
+      const frItems = q.dep ? GEO.deps : GEO.regions;
+      const src = isWorld ? GEO.world : frItems.map(r => r.f);
+      clicked = src.find(f => d3.geoContains(f, ll)) || null;
+      if (clicked) m.area(clicked.k, 'wrong');
+      if (near){ m.line(ll, near); m.mark({type:'label', ll:d3.geoInterpolate(ll, near)(.5), label:fmt(dist) + ' km'}); }
+    }
+    m.mark({type:'pin', ll, cls:hit ? 'pin-true' : 'pin-you'});
+    const clickedName = clicked ? (isWorld ? ((countryByKey.get(clicked.k) || {}).name || clicked.properties.name) : (frItems.find(r => r.key === clicked.k) || {}).name) : null;
+    title = hit ? 'Dans le mille !' : P > 0 ? 'Presque…' : 'Raté';
+    detail = hit
+      ? `C’est bien <b>${esc(q.name)}</b>. <span class="muted">${esc(q.fact || '')}</span>`
+      : `${clickedName ? 'Tu as cliqué sur ' + esc(clickedName) + '. ' : ''}<b>${esc(q.name)}</b> était à ${fmt(dist)} km.`;
+    if (isWorld){
+      const fb = m.featureBounds(q.f), p = m.proj(ll);
+      if (p && (fb[1][0] - fb[0][0]) < m.W * .6){
+        m.zoomToBounds([[Math.min(fb[0][0], p[0]), Math.min(fb[0][1], p[1])], [Math.max(fb[1][0], p[0]), Math.max(fb[1][1], p[1])]], 10, 800, 1.5);
+      }
+    }
+  }
+  finish({P, hit, S, sec, title, detail, sp, short:q.kind === 'city' ? fmt(dist) + ' km' : hit ? 'Trouvé' : fmt(dist) + ' km'});
+}
+
+function typedCorrect(){
+  const q = G.qs[G.i], S = speedNow(), sec = elapsed();
+  G.map.area(q.key, 'hit');
+  const P = 1 - 0.25 * G.attempts;
+  finish({P, hit:true, S, sec, title:sec < 3 ? 'Éclair !' : 'Exact !', detail:`<b>${esc(q.answer)}</b>${q.fact ? ' · <span class="muted">' + esc(q.fact) + '</span>' : ''}${G.attempts ? ' · ' + G.attempts + ' erreur' + (G.attempts > 1 ? 's' : '') : ''}`, short:'Trouvé'});
+}
+function typedWrong(v){
+  G.attempts++;
+  const q = G.qs[G.i];
+  if (G.attempts >= 3){
+    G.map.area(q.key, 'reveal');
+    finish({P:0, hit:false, S:0, sec:elapsed(), title:'Raté', detail:`La réponse était <b>${esc(q.answer)}</b>. Tu as écrit « ${esc(v)} ».`, short:'Raté'});
+    return;
+  }
+  sfx('bad');
+  const f = $('#ansform'); f.classList.remove('shake'); void f.offsetWidth; f.classList.add('shake');
+  const t = $('#tries'); t.textContent = (3 - G.attempts) + (3 - G.attempts > 1 ? ' essais' : ' essai'); t.classList.add('warn');
+  const inp = $('#ans'); inp.select();
+  const sk = $('#skipBtn'); if (sk) sk.classList.add('hot');
+  fxMini('miss');
+}
+function skipTyped(){
+  if (!G || G.answered) return;
+  const q = G.qs[G.i], m = G.map;
+  m.setClickable(false);
+  if (q.kind === 'city') m.mark({type:'pin', ll:q.ll, cls:'pin-true', label:q.name});
+  else if (q.f){ m.area(q.key, 'reveal'); if (G.mode.type === 'map' && G.mode.view !== 'france') m.zoomFeature(q.f, 3, 8); }
+  const ans = q.kind === 'typed' ? q.answer : q.name;
+  finish({P:0, hit:false, S:0, sec:elapsed(), skip:true, title:'Passé', detail:`La réponse était <b>${esc(ans)}</b>.`, short:'Passé'});
+}
+function onTimeout(){
+  if (!G || G.answered) return;
+  const q = G.qs[G.i], m = G.map;
+  m.setClickable(false);
+  if (q.kind === 'city'){ m.mark({type:'pin', ll:q.ll, cls:'pin-true', label:q.name}); }
+  else if (q.f){ m.area(q.key, 'reveal'); if (G.mode.type === 'map' && G.mode.view !== 'france') m.zoomFeature(q.f, 3, 8); }
+  const ans = q.kind === 'typed' ? q.answer : q.name;
+  finish({P:0, hit:false, S:0, sec:G.limit, timeout:true, title:'Temps écoulé', detail:`La réponse était <b>${esc(ans)}</b>.`, short:'Temps'});
+}
+
+function fxMini(kind){
+  const st = $('#stage'); if (!st || REDUCED) return;
+  const f = document.createElement('div'); f.className = 'flash ' + kind; st.appendChild(f); setTimeout(() => f.remove(), 650);
+  if (kind === 'miss'){ st.classList.remove('shake'); void st.offsetWidth; st.classList.add('shake'); }
+}
+function fx(kind, sp, label, streak){
+  const st = $('#stage'); if (!st) return;
+  const sr = st.getBoundingClientRect();
+  const j = document.createElement('div'); j.className = 'judge ' + kind; j.textContent = label; st.appendChild(j); setTimeout(() => j.remove(), 1200);
+  if (REDUCED) return;
+  fxMini(kind);
+  if (kind !== 'miss'){
+    const x = sp ? sp.x - sr.left : sr.width / 2, y = sp ? sp.y - sr.top : sr.height / 2;
+    const cols = kind === 'hit' ? ['#3ee0a8', '#9effd9', '#4fd8ff', '#ffd166'] : ['#ffd166', '#ffb547', '#fff1b8'];
+    const ring = document.createElement('div'); ring.className = 'ring-fx'; ring.style.cssText = `left:${x}px;top:${y}px;--c:${cols[0]}`; st.appendChild(ring); setTimeout(() => ring.remove(), 650);
+    const n = kind === 'hit' ? 22 : 12;
+    for (let k = 0; k < n; k++){
+      const a = Math.random() * Math.PI * 2, d = 40 + Math.random() * 90;
+      const sp2 = document.createElement('i'); sp2.className = 'spark';
+      sp2.style.cssText = `left:${x}px;top:${y}px;--c:${cols[k % cols.length]};--dx:${(Math.cos(a) * d).toFixed(0)}px;--dy:${(Math.sin(a) * d).toFixed(0)}px`;
+      st.appendChild(sp2); setTimeout(() => sp2.remove(), 800);
+    }
+  }
+  if (streak >= 3){
+    const c = document.createElement('div'); c.className = 'combo'; c.textContent = `COMBO ×${streak} · +${Math.min(streak, 5) * 10} %`;
+    st.appendChild(c); setTimeout(() => c.remove(), 1450); sfx('combo');
+  }
+}
+function finish(r){
+  if (!G || G.answered) return;
+  G.answered = true;
+  cancelAnimationFrame(G.raf);
+  $('#tring').classList.remove('low');
+  const F = 0.3 + 0.7 * r.S;
+  const B = r.hit ? 1 + 0.1 * Math.min(G.streak, 5) : 1;
+  const pts = r.timeout ? 0 : Math.round(1000 * r.P * F * B);
+  G.streak = r.hit ? G.streak + 1 : 0;
+  G.maxStreak = Math.max(G.maxStreak, G.streak);
+  if (r.hit) G.hits++;
+  G.raw += pts;
+  pushPresence();
+  const cls = r.hit ? 'hit' : pts > 0 ? 'part' : 'miss';
+  const q = G.qs[G.i];
+  G.log.push({name:q.kind === 'typed' && G.mode.id !== 'pays-nom' ? q.name + ' → ' + q.answer : q.name, cls, pts, sec:r.sec, short:r.short, timeout:!!r.timeout});
+  sfx(cls === 'hit' ? 'good' : cls === 'part' ? 'part' : 'bad');
+  const label = r.skip ? 'PASSÉ' : r.timeout ? 'TROP TARD !' : cls === 'miss' ? 'RATÉ !' : cls === 'part' ? (r.P > .6 ? 'PRESQUE !' : 'PAS LOIN') : r.S >= .8 ? 'PARFAIT !' : r.S >= .55 ? 'EXCELLENT !' : 'BIEN JOUÉ';
+  fx(cls, r.sp || null, label, cls === 'hit' ? G.streak : 0);
+  const stg = $('#stage'); if (stg) stg.classList.remove('danger');
+  const scEl = $('#score'); if (scEl){ scEl.classList.remove('bump'); void scEl.offsetWidth; scEl.classList.add('bump'); }
+  // tableau de bord
+  countTo($('#score'), G.raw - pts, G.raw, 600);
+  const dots = document.querySelectorAll('#dots i'); if (dots[G.i]){ dots[G.i].classList.remove('cur'); dots[G.i].classList.add(cls); }
+  const st = $('#streak');
+  st.classList.toggle('on', G.streak >= 2);
+  st.innerHTML = G.streak >= 2
+    ? `<svg viewBox="0 0 24 24" fill="#ff7a4d"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5 0 2 1 3 2 3 0-3-1-6 1-9.5z"/></svg> Série ×${G.streak} · +${Math.min(G.streak, 5) * 10} %`
+    : 'Pas de série';
+  // points flottants
+  const sp = r.sp || null;
+  const stage = $('#stage');
+  if (stage){
+    const sr = stage.getBoundingClientRect();
+    const x = sp ? sp.x - sr.left : sr.width / 2, y = sp ? sp.y - sr.top - 30 : sr.height * .45;
+    const el = document.createElement('div');
+    el.className = 'pop' + (pts ? '' : ' zero');
+    el.style.left = clamp(x, 40, sr.width - 40) + 'px'; el.style.top = clamp(y, 60, sr.height - 10) + 'px';
+    el.textContent = pts ? '+' + fmt(pts) : '0';
+    $('#popups').appendChild(el); setTimeout(() => el.remove(), 1400);
+  }
+  const last = G.i + 1 >= G.qs.length;
+  const brk = pts ? `précision ${Math.round(r.P * 100)} % · vitesse ${Math.round(F * 100)} %${B > 1 ? ' · série +' + Math.round((B - 1) * 100) + ' %' : ''} · ${fmt1(r.sec)} s` : r.timeout ? 'aucun point' : 'aucun point · la série repart de zéro';
+  $('#dock').innerHTML = `<div class="res glass ${cls}">
+    <div class="res-main"><p class="res-title">${esc(r.title)}</p><p class="res-detail">${r.detail}</p><p class="res-break">${brk}</p></div>
+    <div class="res-pts">+${fmt(pts)}</div>
+    <button class="btn primary" data-act="next" id="nextBtn">${last ? 'Voir mon rang' : 'Suivante'} <kbd>↵</kbd></button></div>`;
+  setTimeout(() => { const a = document.activeElement; const b = $('#nextBtn'); if (b && !(a && a.closest && a.closest('#chat'))) b.focus({preventScroll:true}); }, 50);
+}
+function nextQuestion(){
+  if (!G || !G.answered) return;
+  G.i++;
+  if (G.i >= G.qs.length) renderEnd();
+  else showQuestion();
+}
+function countTo(el, from, to, dur){
+  if (!el) return;
+  if (REDUCED){ el.textContent = fmt(to); return; }
+  const t0 = performance.now();
+  const step = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(from + (to - from) * e); if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+
+/* =====================================================================
+   Fin de partie
+   ===================================================================== */
+async function renderEnd(){
+  const g = G; G = null; cancelAnimationFrame(g.raf);
+  VIEW = 'end';
+  const d = DIFF[g.dk];
+  const total = Math.round(g.raw * d.mult);
+  const ri = rankIdx(total), r = RANKS[ri], nx = RANKS[ri + 1];
+  const rf = rankFull(total);
+  const topBefore = myTopRank();
+  const prevBest = myBest()[g.mode.id];
+  const prevRank = prevBest ? rankIdx(prevBest.score) : -1;
+  const record = !prevBest || total > prevBest.score;
+  const promo = prevBest && ri > prevRank;
+  const capped = nx && ri >= rankByName(d.max);
+  const pct = nx && !capped ? clamp((total - r.min) / (nx.min - r.min), 0, 1) * 100 : 100;
+  const timed = g.log.filter(l => !l.timeout && l.cls !== 'miss');
+  const avg = timed.length ? timed.reduce((a, b) => a + b.sec, 0) / timed.length : 0;
+  const prof = getProfile();
+  app.innerHTML = `<section class="end" style="--rc:${r.c}">
+    <div class="end-hero glass" style="--rc:${r.c}">
+      <div class="end-emblem"><div class="rays"></div><div class="shock"></div>${emblem(ri, rf.div)}</div>
+      <div class="end-info">
+        <p class="eyebrow">${esc(g.mode.name)} · ${g.mode.type === 'map' ? 'carte' : 'saisie'} · ${d.label}</p>
+        <span class="stamp">Rang obtenu</span>
+        <h1 class="end-rank">${rf.name}</h1>
+        ${ri >= 5 && ri > topBefore ? `<div class="unlock">Titre débloqué ${titleHTML(ri)}</div>` : ri >= 5 ? `<div class="unlock">${titleHTML(ri)}</div>` : ''}
+        <div class="end-score"><b id="final">0</b><span>points</span></div>
+        <div class="pills">${record && prof ? '<span class="pill">Nouveau record</span>' : ''}${promo ? '<span class="pill promo">Promotion</span>' : ''}</div>
+        <div class="next">
+          <div class="next-l"><span>${!nx ? '<b>Rang suprême atteint</b>' : capped ? `<b>Rang maximum du niveau ${d.label}</b>` : `Prochain rang : <b>${nx.n}</b>`}</span><span>${nx && !capped ? fmt(nx.min - total) + ' pts à gagner' : ''}</span></div>
+          <div class="bar"><i id="bar"></i></div>
+          ${capped ? `<p class="muted small" style="margin:8px 0 0">Passe au niveau supérieur pour viser ${esc(nx.n)} et au-delà.</p>` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="end-grid">
+      <div class="glass panel">
+        <h3>Ta partie</h3>
+        <div class="stats">
+          <div class="stat"><small>Bonnes réponses</small><b>${g.hits} / ${g.qs.length}</b></div>
+          <div class="stat"><small>Meilleure série</small><b>×${g.maxStreak}</b></div>
+          <div class="stat"><small>Temps moyen</small><b>${avg ? fmt1(avg) + ' s' : '–'}</b></div>
+          <div class="stat"><small>Score brut × niveau</small><b>${fmt(g.raw)} × ${String(d.mult).replace('.', ',')}</b></div>
+        </div>
+      </div>
+      <div class="glass panel" id="savebox"></div>
+    </div>
+    <div class="glass panel">
+      <h3>Question par question</h3>
+      <table class="recap"><tbody>${g.log.map((l, i) => `<tr>
+        <td class="num muted">${i + 1}</td><td><span class="mark ${l.cls}">${l.cls === 'hit' ? '✓' : l.cls === 'part' ? '~' : '✕'}</span></td>
+        <td>${esc(l.name)}</td><td class="det">${esc(l.short)} · ${fmt1(l.sec)} s</td><td class="num">+${fmt(l.pts)}</td></tr>`).join('')}</tbody></table>
+    </div>
+    <div class="actions">
+      <button class="btn primary big" data-act="mode" data-id="${g.mode.id}">Rejouer</button>
+      <button class="btn big" data-act="play">Autre mode</button>
+      <button class="btn big" data-act="board" data-tab="${g.mode.id}">Classement</button>
+    </div>
+  </section>`;
+  window.scrollTo({top:0});
+  countTo($('#final'), 0, total, 1500);
+  pushPresence({m:g.mode.id, d:g.dk, sc:total, r:ri});
+  requestAnimationFrame(() => requestAnimationFrame(() => { const b = $('#bar'); if (b) b.style.width = pct + '%'; }));
+  if (promo || (record && ri >= 4) || ri === 7){ setTimeout(() => { sfx('rank'); confetti(r.c); }, 700); }
+  else if (ri >= 2) setTimeout(() => sfx('good'), 700);
+
+  const res = {mode:g.mode.id, diff:g.dk, score:total, at:Date.now()};
+  const box = $('#savebox');
+  const showSaved = async () => {
+    box.innerHTML = '<h3>Classement</h3><p class="muted">Inscription du score…</p>';
+    const out = await saveResult(res);
+    const rows = boardRows(g.mode.id);
+    let pos = rows.findIndex(x => x.me) + 1;
+    if (!pos) pos = rows.filter(x => x.score > total).length + 1;
+    box.innerHTML = `<h3>Classement · ${esc(g.mode.short)}</h3>
+      <div class="saved">${pos ? `<span class="big">n°${pos}</span>` : ''}<div><b>${nameHTML(getProfile().pseudo, DB.uid || getProfile().id)}</b> est inscrit${record ? ' avec un nouveau record' : ''}.<br>
+      <span class="muted small">${out.shared ? 'Classement partagé avec les autres joueurs.' : 'Classement enregistré sur cet appareil.'}${!record && prevBest ? ' Record actuel : ' + fmt(prevBest.score) + ' pts.' : ''}</span></div></div>`;
+    renderProfChip();
+  };
+  if (prof) showSaved();
+  else {
+    box.innerHTML = `<h3>Inscris ton score</h3>
+      <form id="inlineReg"><div class="field"><label for="ip">Pseudo</label><input id="ip" maxlength="16" placeholder="3 à 16 caractères"></div>
+      <div class="field"><label>Couleur</label><div class="swatches">${COLORS.map((c, i) => `<button type="button" class="sw" style="--av:${c}" data-c="${c}" aria-label="Couleur ${c}" aria-pressed="${i === 0}"></button>`).join('')}</div></div>
+      <p class="err" id="ierr"></p><button class="btn primary" type="submit">M’inscrire au classement</button></form>`;
+    let color = COLORS[0];
+    box.addEventListener('click', e => { const sw = e.target.closest('.sw'); if (sw){ color = sw.dataset.c; box.querySelectorAll('.sw').forEach(x => x.setAttribute('aria-pressed', String(x === sw))); } });
+    $('#inlineReg').addEventListener('submit', e => {
+      e.preventDefault();
+      const v = $('#ip').value.trim();
+      if (v.length < 3){ $('#ierr').textContent = 'Choisis un pseudo d’au moins 3 caractères.'; return; }
+      store.set(LS.profile, {id:'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), pseudo:v.slice(0, 16), color});
+      showSaved();
+      pushPresence({m:g.mode.id, d:g.dk, sc:total, r:ri});
+    });
+  }
+}
+
+function confetti(main){
+  if (REDUCED) return;
+  const c = document.createElement('canvas'); c.className = 'confetti'; document.body.appendChild(c);
+  const ctx = c.getContext('2d'), dpr = Math.min(2, devicePixelRatio || 1);
+  c.width = innerWidth * dpr; c.height = innerHeight * dpr;
+  const cols = [main, '#ff5b3a', '#f6c453', '#e9ddc3', '#2fd08a', '#7fd8ff'];
+  const P = Array.from({length:160}, () => ({x:c.width * (.2 + Math.random() * .6), y:c.height * .35, vx:(Math.random() - .5) * 22 * dpr, vy:(-Math.random() * 18 - 6) * dpr, s:(4 + Math.random() * 6) * dpr, r:Math.random() * 6, vr:(Math.random() - .5) * .3, c:cols[Math.floor(Math.random() * cols.length)]}));
+  const t0 = performance.now();
+  const step = now => {
+    const t = now - t0; ctx.clearRect(0, 0, c.width, c.height);
+    P.forEach(p => { p.vy += .5 * dpr; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.r += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.globalAlpha = Math.max(0, 1 - t / 3200); ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore(); });
+    if (t < 3200) requestAnimationFrame(step); else c.remove();
+  };
+  requestAnimationFrame(step);
+}
+
+/* =====================================================================
+   Classement
+   ===================================================================== */
+let BOARD_TAB = 'general';
+function boardSource(){
+  if (DB.status === 'live') return {players:DB.players, me:DB.uid, shared:true};
+  const p = getProfile();
+  return {players:localPlayers(), me:p ? p.id : null, shared:false};
+}
+function boardRows(tab){
+  const {players, me} = boardSource();
+  const rows = [];
+  players.forEach((p, id) => {
+    if (tab === 'general'){
+      const bs = Object.values(p.best); if (!bs.length) return;
+      rows.push({id, me:id === me, pseudo:p.pseudo, color:p.color, score:bs.reduce((a, b) => a + b.score, 0), ri:Math.max(...bs.map(b => rankIdx(b.score))), sub:bs.length + ' mode' + (bs.length > 1 ? 's' : ''), at:Math.max(...bs.map(b => b.at))});
+    } else {
+      const b = p.best[tab]; if (!b) return;
+      rows.push({id, me:id === me, pseudo:p.pseudo, color:p.color, score:b.score, ri:rankIdx(b.score), sub:DIFF[b.diff].label, at:b.at});
+    }
+  });
+  rows.sort((a, b) => b.score - a.score || a.at - b.at);
+  return rows;
+}
+const LAST_SCORES = new Map();
+function renderBoard(tab, scroll = true, live = false){
+  VIEW = 'board'; stopGame(); if (GLOBE) GLOBE.stop();
+  BOARD_TAB = tab || 'general';
+  const src = boardSource();
+  const rows = boardRows(BOARD_TAB);
+  const status = src.shared ? '<span class="src live"><i></i>Classement partagé en direct</span>'
+    : DB.status === 'loading' ? '<span class="src"><i></i>Connexion au classement partagé…</span>'
+    : DB.status === 'slow' ? '<span class="src"><i></i>Classement partagé injoignable pour l’instant · scores de cet appareil</span>'
+    : '<span class="src"><i></i>Scores enregistrés sur cet appareil</span>';
+  const tabs = [{id:'general', short:'Général'}, ...MODES];
+  const date = t => t ? new Date(t).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}) : '';
+  const who = r => { const br = bestRankFor(r.id); return `<span class="who">${avatarHTML(r.pseudo, r.color, br)}<span class="namecol"><span>${nameHTML(r.pseudo, r.id)}${src.shared ? `<i class="on-dot" data-online="${esc(r.id)}" title="En ligne" hidden></i>` : ''}${r.me ? ' <span class="chip" style="margin-left:4px">toi</span>' : ''}</span>${titleHTML(br)}</span></span>`; };
+  const flashOf = r => { const k = BOARD_TAB + '|' + r.id, old = LAST_SCORES.get(k); return live && (old === undefined || r.score > old); };
+  const flashed = new Set(rows.filter(flashOf).map(r => r.id));
+  rows.forEach(r => LAST_SCORES.set(BOARD_TAB + '|' + r.id, r.score));
+  const pod = (r, i) => { if (!r) return '<div></div>'; const rf = BOARD_TAB === 'general' ? {i:r.ri, div:0, name:RANKS[r.ri].n} : rankFull(r.score); const br = bestRankFor(r.id);
+    return `<div class="pod p${i + 1}" style="--rc:${RANKS[r.ri].c}"><span class="place">${i + 1}${i ? 'e' : 'er'}</span>${emblem(rf.i, rf.div)}<b>${nameHTML(r.pseudo, r.id)}</b>${titleHTML(br)}<span class="sc">${fmt(r.score)} pts</span><span class="muted small">${rf.name} · ${esc(r.sub)}</span></div>`; };
+  app.innerHTML = `<section class="board">
+    <div class="sec-head"><h2>Classement</h2>${status}</div>
+    <div class="glass online" id="onlinePanel"></div>
+    <div class="tabs" role="group" aria-label="Mode">${tabs.map(t => `<button class="tab" data-act="tab" data-tab="${t.id}" aria-pressed="${t.id === BOARD_TAB}">${esc(t.short)}</button>`).join('')}</div>
+    ${rows.length ? `
+      <div class="podium">${pod(rows[1], 1)}${pod(rows[0], 0)}${pod(rows[2], 2)}</div>
+      <div class="glass tablewrap"><table class="lb"><thead><tr><th>#</th><th>Joueur</th><th>Rang</th><th class="num">Score</th><th>${BOARD_TAB === 'general' ? 'Modes joués' : 'Niveau'}</th><th>Date</th></tr></thead>
+      <tbody>${rows.map((r, i) => `<tr class="${r.me ? 'me' : ''} ${flashed.has(r.id) ? 'flash' : ''}"><td class="num">${i + 1}</td><td>${who(r)}</td><td>${(() => { const rf = BOARD_TAB === 'general' ? {i:r.ri, div:0, name:RANKS[r.ri].n} : rankFull(r.score); return `<span class="rk">${emblem(rf.i, rf.div)}${rf.name}</span>`; })()}</td><td class="num">${fmt(r.score)}</td><td>${esc(r.sub)}</td><td class="muted">${date(r.at)}</td></tr>`).join('')}</tbody></table></div>
+      ${BOARD_TAB === 'general' ? '<p class="muted small">Le score général additionne ton meilleur score de chaque mode.</p>' : ''}`
+    : `<div class="glass empty">Personne n’est encore classé ici.<br><br><button class="btn primary" data-act="${BOARD_TAB === 'general' ? 'play' : 'mode'}" data-id="${BOARD_TAB}">Jouer pour ouvrir le classement</button></div>`}
+  </section>`;
+  if (scroll) window.scrollTo({top:0});
+  renderLive();
+  if (!live) pushPresence();
+}
+
+/* =====================================================================
+   Navigation et clavier
+   ===================================================================== */
+document.addEventListener('click', e => {
+  const z = e.target.closest('[data-z]');
+  if (z && G && G.map){ const v = z.dataset.z; if (v === 'in') G.map.zoomBy(1.7); else if (v === 'out') G.map.zoomBy(1 / 1.7); else G.map.reset(400); return; }
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const a = b.dataset.act;
+  if (a === 'home') renderHome();
+  else if (a === 'play'){ if (VIEW !== 'home') renderHome(); setTimeout(() => { const el = $('#modes'); if (el) el.scrollIntoView({behavior:REDUCED ? 'auto' : 'smooth', block:'start'}); }, 30); }
+  else if (a === 'board') renderBoard(b.dataset.tab || BOARD_TAB);
+  else if (a === 'tab') renderBoard(b.dataset.tab, false);
+  else if (a === 'diff'){ DIFFK = b.dataset.v; store.set(LS.diff, DIFFK); document.querySelectorAll('.diff').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === DIFFK))); }
+  else if (a === 'mode') startGame(b.dataset.id);
+  else if (a === 'next') nextQuestion();
+  else if (a === 'skip') skipTyped();
+  else if (a === 'profile') openProfile(() => renderChatFoot());
+  else if (a === 'chat') toggleChat();
+  else if (a === 'sound'){ SOUND = !SOUND; store.set(LS.sound, SOUND); renderSoundBtn(); if (SOUND) sfx('good'); }
+});
+document.addEventListener('keydown', e => {
+  if (e.target && e.target.closest && e.target.closest('#chat')){ if (e.key === 'Escape') toggleChat(false); return; }
+  if (!G || $('.modal')) return;
+  if (e.key === 'Enter' && G.answered){ e.preventDefault(); nextQuestion(); }
+  else if (e.key === 'Escape' && !G.answered) skipTyped();
+});
+
+(function sky(){
+  const c = $('#sky'); if (!c) return;
+  const ctx = c.getContext('2d');
+  let stars = [], w = 0, h = 0;
+  const build = () => {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    w = c.width = innerWidth * dpr; h = c.height = innerHeight * dpr;
+    stars = Array.from({length:Math.round(innerWidth * innerHeight / 5200)}, () => ({x:Math.random() * w, y:Math.random() * h, r:(Math.random() * 1.1 + .25) * dpr, a:Math.random() * .7 + .15, p:Math.random() * 6.28, s:Math.random() * .0015 + .0004}));
+  };
+  const draw = now => {
+    ctx.clearRect(0, 0, w, h);
+    for (const st of stars){
+      const tw = REDUCED ? 1 : .65 + .35 * Math.sin(st.p + now * st.s);
+      ctx.globalAlpha = st.a * tw; ctx.fillStyle = '#dceaff';
+      ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, 6.283); ctx.fill();
+    }
+    if (!REDUCED) setTimeout(() => requestAnimationFrame(draw), 60);
+  };
+  build(); addEventListener('resize', () => { build(); if (REDUCED) draw(0); });
+  requestAnimationFrame(draw);
+})();
+renderSoundBtn();
+renderProfChip();
+renderHome();
+initDB();
+initRoom();
+</script>
+</body>
+</html>

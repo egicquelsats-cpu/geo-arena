@@ -1,0 +1,35 @@
+rules_version = '2';
+// Règles de sécurité Firestore pour Géo Arena.
+// Remplacez VOTRE_IDENTIFIANT_JOUEUR par l'identifiant affiché dans « Mon profil ».
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && request.auth.uid == 'VOTRE_IDENTIFIANT_JOUEUR'; }
+
+    // Scores : tout le monde lit, chacun n'écrit que sa propre fiche.
+    match /players/{uid} {
+      allow read: if true;
+      allow write: if signedIn() && request.auth.uid == uid
+                   && request.resource.data.pseudo is string && request.resource.data.pseudo.size() <= 16;
+      allow delete: if isAdmin();
+    }
+    // Chat : un document par joueur avec ses 30 derniers messages.
+    match /chat/{uid} {
+      allow read: if true;
+      allow write: if signedIn() && request.auth.uid == uid
+                   && request.resource.data.msgs is list && request.resource.data.msgs.size() <= 30;
+      allow delete: if isAdmin();
+    }
+    // Joueurs en ligne : un document par onglet ouvert.
+    match /presence/{id} {
+      allow read: if true;
+      allow write: if signedIn() && id.matches(request.auth.uid + '_.*');
+      allow delete: if isAdmin();
+    }
+    // Liste des admins (badge certifié) : seul l'admin peut la modifier.
+    match /meta/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
