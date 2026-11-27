@@ -2,7 +2,7 @@
 
 Jeu de géographie en ligne : régions, départements et villes de France, pays et capitales du monde, sur de vraies cartes.
 
-**Jouer : https://egicquelsats-cpu.github.io/geo-arena/**
+**Jouer : https://geo-arena.netlify.app/**
 
 - 7 modes, 3 niveaux, chrono, combos et effets de jeu vidéo
 - Rangs compétitifs de Bronze à Légende, avec divisions et titres de saison
