@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://geo-arena.netlify.app/sitemap.xml
+Sitemap: https://geo-arena-jeu.netlify.app/sitemap.xml
