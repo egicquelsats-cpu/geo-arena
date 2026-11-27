@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-
 Sitemap: https://egicquelsats-cpu.github.io/geo-arena/sitemap.xml
