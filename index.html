@@ -1463,7 +1463,9 @@ const VERIF = '<svg class="verif" viewBox="0 0 24 24" role="img" aria-label="Com
 function myIds(){ const p = getProfile(); return [DB.uid, p && p.id].filter(Boolean); }
 const CFG_ADMINS = (() => { const c = window.GEO_ARENA_CONFIG || {}; return [].concat(c.adminUids || [], c.adminUid || []).filter(x => typeof x === 'string' && x); })();
 function isAdmin(id){ return !!id && (ADMINS.has(id) || CFG_ADMINS.includes(id) || (ADMIN_ME && myIds().includes(id))); }
-function nameHTML(pseudo, id){ return `<span class="pn">${esc(pseudo)}</span>${isAdmin(id) ? VERIF + '<span class="adm">Admin</span>' : ''}`; }
+const ADMIN_NAMES = ['emile'];
+const isAdminName = pseudo => ADMIN_NAMES.includes(norm(pseudo || ''));
+function nameHTML(pseudo, id){ return `<span class="pn">${esc(pseudo)}</span>${isAdmin(id) || isAdminName(pseudo) ? VERIF + '<span class="adm">Admin</span>' : ''}`; }
 function avatarHTML(pseudo, color, ri){ return `<span class="avatar fr${Math.max(0, ri | 0)}" style="--av:${color}">${esc(String(pseudo || '?')[0].toUpperCase())}</span>`; }
 function bestRankFor(id){
   if (id && myIds().includes(id)) return myTopRank();
